@@ -245,6 +245,29 @@
     #welcome p {
       font-size: 0.9rem;
     }
+
+    @media (max-width: 600px) {
+      #topbar img { height: 38px; }
+
+      #subheader { padding: 8px 16px; }
+
+      #chat { padding: 14px 12px; gap: 16px; }
+
+      .bubble { padding: 11px 14px; font-size: 0.9rem; }
+
+      .message.user .bubble { max-width: 92%; }
+
+      .source-link { max-width: 100%; white-space: normal; }
+
+      #input-area { padding: 8px 12px 16px; }
+
+      #send {
+        padding: 7px 12px;
+        font-size: 0.8rem;
+      }
+
+      #model-select { font-size: 0.75rem; }
+    }
   </style>
 </head>
 <body>
