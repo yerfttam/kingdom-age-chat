@@ -90,10 +90,12 @@ export default function App() {
       </div>
 
       {/* ── Messages ── */}
-      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-5 flex flex-col gap-5">
+      {/* Note: padding is on each row (not the scroll container) to avoid the
+          overflow-y clipping bug where right padding disappears on iOS/Safari */}
+      <div className="flex-1 min-h-0 overflow-y-auto py-5 flex flex-col gap-5">
 
         {handler.messages.length === 0 && (
-          <div className="flex-1 flex flex-col items-center justify-center text-center py-16 gap-2">
+          <div className="flex-1 flex flex-col items-center justify-center text-center py-16 gap-2 px-4">
             <h2 className="ka-welcome-heading">Ask Anything</h2>
             <p className="text-sm text-[#aaa]">Answers sourced from Kingdom Age video transcripts</p>
           </div>
@@ -101,7 +103,7 @@ export default function App() {
 
         {handler.messages.map((msg) => (
           <div key={msg.id}
-            className={`flex flex-col gap-1.5 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
+            className={`flex flex-col gap-1.5 px-4 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
           >
             <div className={`ka-label ${msg.role === 'user' ? 'text-[#c0392b]' : 'text-[#888]'}`}>
               {msg.role === 'user' ? 'You' : 'Kingdom Age'}
@@ -113,9 +115,9 @@ export default function App() {
         ))}
 
         {busy && (
-          <div className="flex flex-col gap-1.5 items-start">
+          <div className="flex flex-col gap-1.5 items-start px-4">
             <div className="ka-label text-[#888]">Kingdom Age</div>
-            <div className="text-sm text-[#aaa] italic px-1">Searching videos…</div>
+            <div className="text-sm text-[#aaa] italic">Searching videos…</div>
           </div>
         )}
 
