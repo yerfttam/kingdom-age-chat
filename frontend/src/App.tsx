@@ -67,7 +67,24 @@ export default function App() {
       {/* Chat section — fills remaining space */}
       <div className="flex flex-col flex-1 min-h-0">
         <ChatSection handler={handler} className="flex flex-col flex-1 min-h-0">
-          <ChatMessages className="flex-1 overflow-y-auto px-4 py-4" />
+
+          {handler.messages.length === 0 ? (
+            /* Welcome screen — shown before first message */
+            <div className="flex-1 flex flex-col items-center justify-center text-center px-6 gap-2">
+              <h2
+                className="text-lg font-bold uppercase tracking-widest"
+                style={{ fontFamily: 'Barlow, Helvetica, Arial, sans-serif', color: '#53585c' }}
+              >
+                Ask Anything
+              </h2>
+              <p className="text-sm" style={{ color: '#aaa' }}>
+                Answers sourced from Kingdom Age video transcripts
+              </p>
+            </div>
+          ) : (
+            <ChatMessages className="flex-1 overflow-y-auto px-4 py-4" />
+          )}
+
           <ChatInput className="flex-shrink-0 px-4 pb-4 pt-2 border-t border-gray-200 bg-white">
             <ChatInput.Form>
               <ChatInput.Field
