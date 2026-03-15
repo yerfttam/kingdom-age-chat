@@ -146,6 +146,27 @@
 
     #send:hover { background: #2d5bbf; }
     #send:disabled { background: #2a2a4a; cursor: not-allowed; }
+
+    #model-select {
+      background: #1a1a2e;
+      border: 1px solid #2a2a4a;
+      border-radius: 8px;
+      color: #aaa;
+      font-size: 0.8rem;
+      padding: 4px 8px;
+      cursor: pointer;
+      outline: none;
+      margin-top: 8px;
+    }
+
+    #model-select:focus { border-color: #3a6fd8; }
+
+    #toolbar {
+      display: flex;
+      justify-content: flex-end;
+      padding: 0 2px;
+      margin-top: 6px;
+    }
   </style>
 </head>
 <body>
@@ -162,12 +183,20 @@
     <textarea id="question" rows="1" placeholder="Ask a question about Kingdom Age teaching..."></textarea>
     <button id="send">Send</button>
   </div>
+  <div id="toolbar">
+    <select id="model-select">
+      <option value="claude-haiku-4-5-20251001">Haiku 4.5 — fast</option>
+      <option value="claude-sonnet-4-6" selected>Sonnet 4.6 — balanced</option>
+      <option value="claude-opus-4-6">Opus 4.6 — powerful</option>
+    </select>
+  </div>
 </div>
 
 <script>
   const chat = document.getElementById('chat');
   const questionEl = document.getElementById('question');
   const sendBtn = document.getElementById('send');
+  const modelSelect = document.getElementById('model-select');
 
   function addMessage(role, text, sources = []) {
     const msg = document.createElement('div');
@@ -222,7 +251,7 @@
       const res = await fetch('/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ question })
+        body: JSON.stringify({ question, model: modelSelect.value })
       });
 
       const data = await res.json();

@@ -72,7 +72,7 @@ TRANSCRIPT EXCERPTS:
 QUESTION: {question}"""
 
 
-def chat(question: str) -> dict:
+def chat(question: str, model: str = CLAUDE_MODEL) -> dict:
     chunks = retrieve(question)
 
     if not chunks:
@@ -84,7 +84,7 @@ def chat(question: str) -> dict:
     prompt = build_prompt(question, chunks)
 
     response = anthropic_client.messages.create(
-        model=CLAUDE_MODEL,
+        model=model,
         max_tokens=1024,
         messages=[{"role": "user", "content": prompt}]
     )

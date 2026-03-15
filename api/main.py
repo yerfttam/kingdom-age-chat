@@ -20,6 +20,9 @@ from rag import chat
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Log what port Railway assigned
+    logger.info(f"PORT env var = {os.environ.get('PORT', 'NOT SET')}")
+
     # Check API keys
     for key in ["OPENAI_API_KEY", "ANTHROPIC_API_KEY", "PINECONE_API_KEY"]:
         val = os.environ.get(key, "")
@@ -44,8 +47,15 @@ app = FastAPI(title="Kingdom Age Chat", lifespan=lifespan)
 FRONTEND_DIR = os.path.join(os.path.dirname(__file__), '..', 'frontend')
 
 
+ALLOWED_MODELS = {
+    "claude-haiku-4-5-20251001",
+    "claude-sonnet-4-6",
+    "claude-opus-4-6",
+}
+
 class ChatRequest(BaseModel):
     question: str
+    model: str = "claude-sonnet-4-6"
 
 
 class Source(BaseModel):
@@ -62,7 +72,9 @@ class ChatResponse(BaseModel):
 async def chat_endpoint(req: ChatRequest):
     if not req.question.strip():
         raise HTTPException(status_code=400, detail="Question cannot be empty.")
-    result = chat(req.question)
+    if req.model not in ALLOWED_MODELS:
+        raise HTTPException(status_code=400, detail=f"Unknown model: {req.model}")
+    result = chat(req.question, model=req.model)
     return result
 
 
