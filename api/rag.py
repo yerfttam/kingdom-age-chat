@@ -17,7 +17,7 @@ anthropic_client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
 EMBED_MODEL = "text-embedding-3-small"
 CLAUDE_MODEL = "claude-sonnet-4-6"
-TOP_K = 8  # number of chunks to retrieve
+TOP_K = 20  # number of chunks to retrieve (~10k tokens of context)
 
 
 def get_pinecone_index():
@@ -86,14 +86,14 @@ def chat(question: str, model: str = CLAUDE_MODEL) -> dict:
     if model.startswith("gpt-"):
         response = openai_client.chat.completions.create(
             model=model,
-            max_tokens=1024,
+            max_tokens=4096,
             messages=[{"role": "user", "content": prompt}]
         )
         answer = response.choices[0].message.content
     else:
         response = anthropic_client.messages.create(
             model=model,
-            max_tokens=1024,
+            max_tokens=4096,
             messages=[{"role": "user", "content": prompt}]
         )
         answer = response.content[0].text
