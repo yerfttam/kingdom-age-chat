@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect, type KeyboardEvent } from 'react'
+import ReactMarkdown from 'react-markdown'
 import { useKingdomAgeChat } from './hooks/useKingdomAgeChat'
 import type { Message } from '@llamaindex/chat-ui'
 
@@ -27,7 +28,7 @@ const MODELS = [
   ]},
 ]
 
-const VERSION = 'v2.0.3'
+const VERSION = 'v2.0.4'
 
 /* ─── App ───────────────────────────────────────────────────────── */
 
@@ -98,7 +99,7 @@ export default function App() {
       {/* ── Messages ── */}
       {/* Note: padding is on each row (not the scroll container) to avoid the
           overflow-y clipping bug where right padding disappears on iOS/Safari */}
-      <div className="flex-1 min-h-0 overflow-y-auto py-5 flex flex-col gap-5">
+      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden py-5 flex flex-col gap-5">
 
         {handler.messages.length === 0 && (
           <div className="flex-1 flex flex-col items-center justify-center text-center py-16 gap-2 px-4">
@@ -116,7 +117,10 @@ export default function App() {
               {msg.role === 'user' ? 'You' : 'Kingdom Age'}
             </div>
             <div className={msg.role === 'user' ? 'ka-bubble-user' : 'ka-bubble-assistant'}>
-              {getText(msg)}
+              {msg.role === 'assistant'
+                ? <div className="ka-markdown"><ReactMarkdown>{getText(msg)}</ReactMarkdown></div>
+                : getText(msg)
+              }
             </div>
           </div>
         ))}
