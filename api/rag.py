@@ -83,13 +83,20 @@ def chat(question: str, model: str = CLAUDE_MODEL) -> dict:
 
     prompt = build_prompt(question, chunks)
 
-    response = anthropic_client.messages.create(
-        model=model,
-        max_tokens=1024,
-        messages=[{"role": "user", "content": prompt}]
-    )
-
-    answer = response.content[0].text
+    if model.startswith("gpt-"):
+        response = openai_client.chat.completions.create(
+            model=model,
+            max_tokens=1024,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        answer = response.choices[0].message.content
+    else:
+        response = anthropic_client.messages.create(
+            model=model,
+            max_tokens=1024,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        answer = response.content[0].text
 
     # Deduplicate sources by URL
     seen = set()
