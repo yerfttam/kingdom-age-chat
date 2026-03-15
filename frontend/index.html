@@ -133,33 +133,6 @@
       box-shadow: 0 1px 3px rgba(0,0,0,0.06);
     }
 
-    .sources {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
-      padding: 0 4px;
-    }
-
-    .source-link {
-      font-family: Barlow, Helvetica, Arial, sans-serif;
-      font-size: 0.75rem;
-      font-weight: 600;
-      letter-spacing: 0.03em;
-      color: #c0392b;
-      text-decoration: none;
-      background: #fff5f5;
-      border: 1px solid #f0d0d0;
-      border-radius: 4px;
-      padding: 4px 10px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 320px;
-      transition: background 0.15s;
-    }
-
-    .source-link:hover { background: #ffe8e8; }
-
     .thinking {
       color: #aaa;
       font-style: italic;
@@ -277,8 +250,6 @@
 
       .message.user .bubble { max-width: 92%; }
 
-      .source-link { max-width: 100%; white-space: normal; }
-
       #input-area { padding: 8px 12px 16px; }
 
       #send {
@@ -337,7 +308,7 @@
   const sendBtn = document.getElementById('send');
   const modelSelect = document.getElementById('model-select');
 
-  function addMessage(role, text, sources = []) {
+  function addMessage(role, text) {
     if (welcomeEl) welcomeEl.remove();
 
     const msg = document.createElement('div');
@@ -352,21 +323,6 @@
     bubble.className = 'bubble';
     bubble.textContent = text;
     msg.appendChild(bubble);
-
-    if (sources.length > 0) {
-      const src = document.createElement('div');
-      src.className = 'sources';
-      sources.forEach(s => {
-        const a = document.createElement('a');
-        a.href = s.url;
-        a.target = '_blank';
-        a.rel = 'noopener';
-        a.className = 'source-link';
-        a.textContent = s.title;
-        src.appendChild(a);
-      });
-      msg.appendChild(src);
-    }
 
     chatEl.appendChild(msg);
     chatEl.scrollTop = chatEl.scrollHeight;
@@ -403,7 +359,7 @@
 
       const data = await res.json();
       thinking.remove();
-      addMessage('assistant', data.answer, data.sources);
+      addMessage('assistant', data.answer);
     } catch (e) {
       thinking.remove();
       addMessage('assistant', 'Something went wrong. Please try again.');
