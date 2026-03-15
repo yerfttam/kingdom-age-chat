@@ -120,7 +120,6 @@ body {
   text-transform: uppercase;
   cursor: pointer;
   flex-shrink: 0;
-  align-self: flex-end;
   transition: background 0.15s;
 }
 

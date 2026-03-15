@@ -127,7 +127,7 @@ export default function App() {
       {/* ── Input ── */}
       <div className="flex-shrink-0 px-4 pb-4 pt-3 bg-white border-t border-[#e8e8e8]">
         <div className="ka-input-card">
-          <div className="flex items-end gap-2">
+          <div className="flex items-start gap-2">
             <textarea
               ref={textareaRef}
               rows={1}
