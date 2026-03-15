@@ -2,17 +2,44 @@
 FastAPI backend — exposes a /chat endpoint and serves the frontend.
 """
 
+from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
+import logging
 import os
 import sys
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 sys.path.insert(0, os.path.dirname(__file__))
 from rag import chat
 
-app = FastAPI(title="Kingdom Age Chat")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Check API keys
+    for key in ["OPENAI_API_KEY", "ANTHROPIC_API_KEY", "PINECONE_API_KEY"]:
+        val = os.environ.get(key, "")
+        if val:
+            logger.info(f"OK {key} loaded ({val[:6]}...)")
+        else:
+            logger.error(f"MISSING {key} is not set")
+
+    # Test Pinecone connection
+    try:
+        from rag import index
+        stats = index().describe_index_stats()
+        logger.info(f"OK Pinecone connected — {stats.total_vector_count} vectors indexed")
+    except Exception as e:
+        logger.error(f"FAIL Pinecone connection failed: {e}")
+
+    yield
+
+
+app = FastAPI(title="Kingdom Age Chat", lifespan=lifespan)
 
 FRONTEND_DIR = os.path.join(os.path.dirname(__file__), '..', 'frontend')
 
