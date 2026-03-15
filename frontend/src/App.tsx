@@ -27,7 +27,7 @@ const MODELS = [
   ]},
 ]
 
-const VERSION = 'v2.0.0'
+const VERSION = 'v2.0.2'
 
 /* ─── App ───────────────────────────────────────────────────────── */
 
@@ -66,7 +66,7 @@ export default function App() {
   }
 
   return (
-    <div className="flex flex-col h-dvh w-full max-w-3xl mx-auto">
+    <div className="flex flex-col h-dvh w-full">
 
       {/* ── Top bar ── */}
       <div className="flex items-center justify-center flex-shrink-0 py-2 px-6 bg-[#8b0000]">
