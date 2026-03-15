@@ -1,0 +1,6 @@
+scrapetube
+youtube-transcript-api
+openai
+pinecone
+python-dotenv
+tqdm
