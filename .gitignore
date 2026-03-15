@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+dist/
+build/
+
+# Environment
+.env
+.env.local
+
+# Data / transcripts (too large for git)
+data/
+*.json
+!config.example.json
+
+# Pinecone / embeddings cache
+cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
