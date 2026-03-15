@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Kingdom Age Chat</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #0f1117;
+      color: #e8e8e8;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    header {
+      width: 100%;
+      max-width: 760px;
+      padding: 24px 20px 12px;
+    }
+
+    header h1 {
+      font-size: 1.4rem;
+      font-weight: 600;
+      color: #fff;
+    }
+
+    header p {
+      font-size: 0.85rem;
+      color: #888;
+      margin-top: 4px;
+    }
+
+    #chat {
+      flex: 1;
+      width: 100%;
+      max-width: 760px;
+      overflow-y: auto;
+      padding: 12px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .message {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .message.user .bubble {
+      background: #1e2a3a;
+      align-self: flex-end;
+      border-radius: 16px 16px 4px 16px;
+      max-width: 80%;
+    }
+
+    .message.assistant .bubble {
+      background: #1a1a2e;
+      align-self: flex-start;
+      border-radius: 16px 16px 16px 4px;
+      max-width: 100%;
+    }
+
+    .bubble {
+      padding: 12px 16px;
+      line-height: 1.6;
+      font-size: 0.95rem;
+      white-space: pre-wrap;
+    }
+
+    .sources {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding: 0 4px;
+    }
+
+    .source-link {
+      font-size: 0.78rem;
+      color: #6aa3e8;
+      text-decoration: none;
+      background: #1a2840;
+      border: 1px solid #2a3f5f;
+      border-radius: 6px;
+      padding: 4px 10px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 300px;
+    }
+
+    .source-link:hover { background: #223350; }
+
+    .thinking {
+      color: #666;
+      font-style: italic;
+      font-size: 0.88rem;
+      padding: 8px 0;
+    }
+
+    #input-area {
+      width: 100%;
+      max-width: 760px;
+      padding: 12px 20px 24px;
+    }
+
+    #input-row {
+      display: flex;
+      gap: 10px;
+      background: #1a1a2e;
+      border: 1px solid #2a2a4a;
+      border-radius: 12px;
+      padding: 10px 14px;
+    }
+
+    #question {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #e8e8e8;
+      font-size: 0.95rem;
+      resize: none;
+      line-height: 1.5;
+      max-height: 120px;
+    }
+
+    #question::placeholder { color: #555; }
+
+    #send {
+      background: #3a6fd8;
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      cursor: pointer;
+      padding: 6px 14px;
+      font-size: 0.9rem;
+      align-self: flex-end;
+      transition: background 0.15s;
+    }
+
+    #send:hover { background: #2d5bbf; }
+    #send:disabled { background: #2a2a4a; cursor: not-allowed; }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Kingdom Age Chat</h1>
+  <p>Ask anything from 3,500+ videos</p>
+</header>
+
+<div id="chat"></div>
+
+<div id="input-area">
+  <div id="input-row">
+    <textarea id="question" rows="1" placeholder="Ask a question about Kingdom Age teaching..."></textarea>
+    <button id="send">Send</button>
+  </div>
+</div>
+
+<script>
+  const chat = document.getElementById('chat');
+  const questionEl = document.getElementById('question');
+  const sendBtn = document.getElementById('send');
+
+  function addMessage(role, text, sources = []) {
+    const msg = document.createElement('div');
+    msg.className = `message ${role}`;
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.textContent = text;
+    msg.appendChild(bubble);
+
+    if (sources.length > 0) {
+      const src = document.createElement('div');
+      src.className = 'sources';
+      sources.forEach(s => {
+        const a = document.createElement('a');
+        a.href = s.url;
+        a.target = '_blank';
+        a.rel = 'noopener';
+        a.className = 'source-link';
+        a.textContent = s.title;
+        src.appendChild(a);
+      });
+      msg.appendChild(src);
+    }
+
+    chat.appendChild(msg);
+    chat.scrollTop = chat.scrollHeight;
+    return msg;
+  }
+
+  function addThinking() {
+    const el = document.createElement('div');
+    el.className = 'thinking';
+    el.textContent = 'Searching videos…';
+    chat.appendChild(el);
+    chat.scrollTop = chat.scrollHeight;
+    return el;
+  }
+
+  async function submit() {
+    const question = questionEl.value.trim();
+    if (!question) return;
+
+    questionEl.value = '';
+    questionEl.style.height = 'auto';
+    sendBtn.disabled = true;
+
+    addMessage('user', question);
+    const thinking = addThinking();
+
+    try {
+      const res = await fetch('/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question })
+      });
+
+      const data = await res.json();
+      thinking.remove();
+      addMessage('assistant', data.answer, data.sources);
+    } catch (e) {
+      thinking.remove();
+      addMessage('assistant', 'Something went wrong. Please try again.');
+    }
+
+    sendBtn.disabled = false;
+    questionEl.focus();
+  }
+
+  sendBtn.addEventListener('click', submit);
+
+  questionEl.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      submit();
+    }
+  });
+
+  // Auto-resize textarea
+  questionEl.addEventListener('input', () => {
+    questionEl.style.height = 'auto';
+    questionEl.style.height = questionEl.scrollHeight + 'px';
+  });
+</script>
+</body>
+</html>

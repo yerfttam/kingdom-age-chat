@@ -4,3 +4,6 @@ openai
 pinecone
 python-dotenv
 tqdm
+fastapi
+uvicorn
+anthropic
