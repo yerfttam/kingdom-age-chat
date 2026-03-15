@@ -64,7 +64,7 @@ def build_prompt(question: str, chunks: list[dict]) -> str:
 Answer the question below using only the provided video transcript excerpts.
 Be clear, concise, and grounded in the sources.
 If the answer isn't in the sources, say so honestly.
-At the end of your answer, list the relevant videos as sources.
+Do not list or mention sources in your answer.
 
 TRANSCRIPT EXCERPTS:
 {context}
