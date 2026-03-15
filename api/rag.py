@@ -9,7 +9,8 @@ from pinecone import Pinecone
 from anthropic import Anthropic
 from dotenv import load_dotenv
 
-load_dotenv()
+# Load .env from project root regardless of working directory
+load_dotenv(os.path.join(os.path.dirname(__file__), '..', '.env'))
 
 openai_client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 anthropic_client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
