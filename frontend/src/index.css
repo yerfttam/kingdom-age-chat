@@ -21,17 +21,62 @@ body {
   color: #53585c;
 }
 
-/* Kingdom Age branding overrides for chat-ui */
-.ka-send-btn {
-  background: #8b0000 !important;
-  border-radius: 6px;
-  font-family: "Barlow", Helvetica, Arial, sans-serif;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+/* Input card — white box with border + shadow, focus ring on typing */
+.ka-input-card {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 10px 14px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.ka-send-btn:hover {
+.ka-input-card:focus-within {
+  border-color: #c0392b;
+  box-shadow: 0 2px 10px rgba(192, 57, 43, 0.12);
+}
+
+/* Textarea inside the card */
+.ka-input-field {
+  background: transparent !important;
+  border: none !important;
+  outline: none !important;
+  resize: none !important;
+  font-family: "Fira Sans", Helvetica, Arial, sans-serif !important;
+  font-size: 0.95rem !important;
+  color: #2c2c2c !important;
+  line-height: 1.5 !important;
+  width: 100% !important;
+}
+
+.ka-input-field::placeholder {
+  color: #bbb !important;
+}
+
+/* SEND button */
+.ka-send-btn {
+  background: #8b0000 !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 6px !important;
+  padding: 7px 18px !important;
+  font-family: "Barlow", Helvetica, Arial, sans-serif !important;
+  font-size: 0.85rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+  cursor: pointer !important;
+  flex-shrink: 0 !important;
+  align-self: flex-end !important;
+  transition: background 0.15s !important;
+}
+
+.ka-send-btn:hover:not(:disabled) {
   background: #6b0000 !important;
+}
+
+.ka-send-btn:disabled {
+  background: #ccc !important;
+  cursor: not-allowed !important;
 }
 

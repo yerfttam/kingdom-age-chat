@@ -85,14 +85,18 @@ export default function App() {
             <ChatMessages className="flex-1 overflow-y-auto px-4 py-4" />
           )}
 
-          <ChatInput className="flex-shrink-0 px-4 pb-4 pt-2 border-t border-gray-200 bg-white">
-            <ChatInput.Form>
-              <ChatInput.Field
-                placeholder="Ask a question…"
-                className="flex-1"
-              />
-              <ChatInput.Submit className="ka-send-btn" />
-            </ChatInput.Form>
+          <ChatInput className="flex-shrink-0 px-4 pb-4 pt-3 bg-white border-t border-gray-200">
+            <div className="ka-input-card">
+              <ChatInput.Form className="flex items-end gap-2">
+                <ChatInput.Field
+                  placeholder="Ask a question…"
+                  className="ka-input-field"
+                />
+                <ChatInput.Submit className="ka-send-btn">
+                  SEND
+                </ChatInput.Submit>
+              </ChatInput.Form>
+            </div>
           </ChatInput>
         </ChatSection>
       </div>
