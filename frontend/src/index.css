@@ -1,0 +1,36 @@
+@import "tailwindcss";
+@import "@llamaindex/chat-ui/styles/markdown.css";
+
+/* Tell Tailwind v4 to scan llamaindex chat-ui components */
+@source "../node_modules/@llamaindex/chat-ui/**/*.{ts,tsx}";
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100dvh;
+  overflow: hidden;
+}
+
+body {
+  font-family: "Fira Sans", Helvetica, Arial, sans-serif;
+  background: #f5f5f5;
+  color: #53585c;
+}
+
+/* Kingdom Age branding overrides for chat-ui */
+.ka-send-btn {
+  background: #8b0000 !important;
+  border-radius: 6px;
+  font-family: "Barlow", Helvetica, Arial, sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.ka-send-btn:hover {
+  background: #6b0000 !important;
+}

@@ -44,7 +44,7 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="Kingdom Age Chat", lifespan=lifespan)
 
-FRONTEND_DIR = os.path.join(os.path.dirname(__file__), '..', 'frontend')
+FRONTEND_DIST = os.path.join(os.path.dirname(__file__), '..', 'frontend', 'dist')
 
 
 ALLOWED_MODELS = {
@@ -85,5 +85,12 @@ async def health():
     return {"status": "ok"}
 
 
-# Serve frontend
-app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
+# Serve frontend (React build output)
+# Falls back gracefully if dist/ doesn't exist yet (local dev uses Vite dev server)
+if os.path.isdir(FRONTEND_DIST):
+    app.mount("/", StaticFiles(directory=FRONTEND_DIST, html=True), name="frontend")
+else:
+    logger.warning(
+        "frontend/dist not found — run 'cd frontend && npm run build' to build, "
+        "or use the Vite dev server on http://localhost:5173"
+    )
