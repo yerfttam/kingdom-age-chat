@@ -63,6 +63,8 @@
     /* Sub-header */
     #subheader {
       width: 100%;
+      max-width: 100%;
+      overflow: hidden;
       background: #fff;
       border-bottom: 2px solid #e8e8e8;
       padding: 10px 24px;
@@ -79,6 +81,7 @@
       color: #1a0a0a;
       letter-spacing: 0.06em;
       text-transform: uppercase;
+      white-space: nowrap;
     }
 
     #subheader h1 span {
@@ -261,7 +264,8 @@
     @media (max-width: 600px) {
       #topbar img { height: 38px; }
 
-      #subheader { padding: 8px 16px; }
+      #subheader { padding: 8px 12px; }
+      #subheader h1 { font-size: 0.8rem; letter-spacing: 0.04em; }
 
       #chat { padding: 14px 8px; gap: 16px; }
 
@@ -318,7 +322,7 @@
       </optgroup>
     </select>
   </div>
-  <div id="version">v1.0.5</div>
+  <div id="version">v1.0.6</div>
 </div>
 
 <script>
