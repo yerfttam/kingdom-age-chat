@@ -1,14 +1,6 @@
 @import "tailwindcss";
-@import "@llamaindex/chat-ui/styles/markdown.css";
 
-/* Tell Tailwind v4 to scan llamaindex chat-ui components */
-@source "../node_modules/@llamaindex/chat-ui/**/*.{ts,tsx}";
-
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body, #root {
   height: 100dvh;
@@ -21,62 +13,138 @@ body {
   color: #53585c;
 }
 
-/* Input card — white box with border + shadow, focus ring on typing */
+/* Sub-header title */
+.ka-subheader-title {
+  font-family: "Barlow", Helvetica, Arial, sans-serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #1a0a0a;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+/* Welcome heading */
+.ka-welcome-heading {
+  font-family: "Barlow", Helvetica, Arial, sans-serif;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #53585c;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* Message label (YOU / KINGDOM AGE) */
+.ka-label {
+  font-family: "Barlow", Helvetica, Arial, sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* User bubble */
+.ka-bubble-user {
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px 12px 3px 12px;
+  padding: 12px 16px;
+  font-size: 0.95rem;
+  line-height: 1.65;
+  color: #2c2c2c;
+  max-width: 80%;
+  word-break: break-word;
+  white-space: pre-wrap;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+/* Assistant bubble */
+.ka-bubble-assistant {
+  background: #fff;
+  border-left: 3px solid #c0392b;
+  border-radius: 0 12px 12px 0;
+  padding: 12px 16px;
+  font-size: 0.95rem;
+  line-height: 1.65;
+  color: #2c2c2c;
+  max-width: 92%;
+  word-break: break-word;
+  white-space: pre-wrap;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+}
+
+/* Input card */
 .ka-input-card {
   background: #fff;
   border: 1px solid #ddd;
   border-radius: 8px;
   padding: 10px 14px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.06);
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .ka-input-card:focus-within {
   border-color: #c0392b;
-  box-shadow: 0 2px 10px rgba(192, 57, 43, 0.12);
+  box-shadow: 0 2px 10px rgba(192,57,43,0.12);
 }
 
-/* Textarea inside the card */
+/* Textarea */
 .ka-input-field {
-  background: transparent !important;
-  border: none !important;
-  outline: none !important;
-  resize: none !important;
-  font-family: "Fira Sans", Helvetica, Arial, sans-serif !important;
-  font-size: 0.95rem !important;
-  color: #2c2c2c !important;
-  line-height: 1.5 !important;
-  width: 100% !important;
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  resize: none;
+  font-family: "Fira Sans", Helvetica, Arial, sans-serif;
+  font-size: 0.95rem;
+  color: #2c2c2c;
+  line-height: 1.5;
+  max-height: 120px;
+  width: 100%;
 }
 
-.ka-input-field::placeholder {
-  color: #bbb !important;
-}
+.ka-input-field::placeholder { color: #bbb; }
+.ka-input-field:disabled { opacity: 0.5; }
 
 /* SEND button */
 .ka-send-btn {
-  background: #8b0000 !important;
-  color: #fff !important;
-  border: none !important;
-  border-radius: 6px !important;
-  padding: 7px 18px !important;
-  font-family: "Barlow", Helvetica, Arial, sans-serif !important;
-  font-size: 0.85rem !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.05em !important;
-  text-transform: uppercase !important;
-  cursor: pointer !important;
-  flex-shrink: 0 !important;
-  align-self: flex-end !important;
-  transition: background 0.15s !important;
+  background: #8b0000;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 7px 18px;
+  font-family: "Barlow", Helvetica, Arial, sans-serif;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  cursor: pointer;
+  flex-shrink: 0;
+  align-self: flex-end;
+  transition: background 0.15s;
 }
 
-.ka-send-btn:hover:not(:disabled) {
-  background: #6b0000 !important;
+.ka-send-btn:hover:not(:disabled) { background: #6b0000; }
+.ka-send-btn:disabled { background: #ccc; cursor: not-allowed; }
+
+/* Model selector */
+.ka-model-select {
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  color: #888;
+  font-family: "Fira Sans", Helvetica, Arial, sans-serif;
+  font-size: 0.78rem;
+  padding: 4px 8px;
+  cursor: pointer;
+  outline: none;
 }
 
-.ka-send-btn:disabled {
-  background: #ccc !important;
-  cursor: not-allowed !important;
-}
+.ka-model-select:focus { border-color: #c0392b; }
 
+/* Mobile tweaks */
+@media (max-width: 600px) {
+  .ka-subheader-title { font-size: 0.8rem; letter-spacing: 0.04em; }
+  .ka-bubble-user { max-width: 85%; }
+  .ka-bubble-assistant { max-width: 96%; }
+}
