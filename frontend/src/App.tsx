@@ -28,12 +28,12 @@ const MODELS = [
   ]},
 ]
 
-const VERSION = 'v2.0.4'
+const VERSION = 'v2.0.5'
 
 /* ─── App ───────────────────────────────────────────────────────── */
 
 export default function App() {
-  const [model, setModel]   = useState('gpt-4o')
+  const [model, setModel]   = useState('claude-opus-4-6')
   const [input, setInput]   = useState('')
   const getModel            = useCallback(() => model, [model])
   const handler             = useKingdomAgeChat(getModel)
