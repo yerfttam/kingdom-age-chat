@@ -27,7 +27,7 @@ const MODELS = [
   ]},
 ]
 
-const VERSION = 'v2.0.2'
+const VERSION = 'v2.0.3'
 
 /* ─── App ───────────────────────────────────────────────────────── */
 
@@ -37,12 +37,18 @@ export default function App() {
   const getModel            = useCallback(() => model, [model])
   const handler             = useKingdomAgeChat(getModel)
   const bottomRef           = useRef<HTMLDivElement>(null)
+  const lastMsgRef          = useRef<HTMLDivElement>(null)
   const textareaRef         = useRef<HTMLTextAreaElement>(null)
   const busy                = handler.status === 'submitted'
 
-  /* auto-scroll when messages change */
+  /* auto-scroll: user message → scroll to bottom; assistant reply → scroll to top of reply */
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const last = handler.messages[handler.messages.length - 1]
+    if (last?.role === 'assistant') {
+      lastMsgRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    } else {
+      bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
   }, [handler.messages])
 
   /* auto-grow textarea */
@@ -101,8 +107,9 @@ export default function App() {
           </div>
         )}
 
-        {handler.messages.map((msg) => (
+        {handler.messages.map((msg, i) => (
           <div key={msg.id}
+            ref={i === handler.messages.length - 1 ? lastMsgRef : null}
             className={`flex flex-col gap-1.5 px-4 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
           >
             <div className={`ka-label ${msg.role === 'user' ? 'text-[#c0392b]' : 'text-[#888]'}`}>
