@@ -7,3 +7,5 @@ tqdm
 fastapi
 uvicorn
 anthropic
+yt-dlp
+striprtf
