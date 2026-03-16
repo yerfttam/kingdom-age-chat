@@ -28,7 +28,7 @@ const MODELS = [
   ]},
 ]
 
-const VERSION = 'v2.2.0'
+const VERSION = 'v2.2.1'
 
 /* ─── App ───────────────────────────────────────────────────────── */
 
@@ -50,7 +50,7 @@ export default function App() {
     } else {
       bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
     }
-  }, [handler.messages])
+  }, [handler.messages.length])
 
   /* auto-grow textarea */
   const handleInput = () => {
