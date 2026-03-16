@@ -164,18 +164,44 @@ async def admin():
             <td title="{question}">{q}</td>
             <td>{model or '—'}</td>
             <td>{ms}</td>
-            <td>{num_sources or 0}</td>
             <td style="font-size:0.7rem;color:#999">{(session_id or '')[:8]}</td>
         </tr>"""
 
     html = f"""<!DOCTYPE html>
 <html>
 <head>
-<title>KA Admin — Queries</title>
+<title>Kingdom Age Chat Administration</title>
 <style>
-  body {{ font-family: -apple-system, sans-serif; margin: 0; padding: 24px; background: #f5f5f5; color: #222; }}
-  h1 {{ font-size: 1.4rem; color: #8b0000; margin-bottom: 4px; }}
-  .meta {{ font-size: 0.85rem; color: #666; margin-bottom: 20px; }}
+  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+  body {{ font-family: -apple-system, sans-serif; background: #f5f5f5; color: #222; }}
+  .ka-header {{
+    background: #8b0000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 24px 8px;
+  }}
+  .ka-header img {{
+    height: 52px;
+    width: auto;
+  }}
+  .ka-subheader {{
+    background: white;
+    border-bottom: 2px solid #e8e8e8;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 24px;
+  }}
+  .ka-subheader h1 {{
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1a1a1a;
+    letter-spacing: 0.01em;
+  }}
+  .ka-subheader h1 span {{ color: #1a1a1a; }}
+  .content {{ padding: 24px; }}
+  .meta {{ font-size: 0.85rem; color: #666; margin-bottom: 16px; }}
   table {{ width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.1); }}
   th {{ background: #8b0000; color: white; text-align: left; padding: 10px 14px; font-size: 0.8rem; font-weight: 600; }}
   td {{ padding: 9px 14px; font-size: 0.82rem; border-bottom: 1px solid #f0f0f0; vertical-align: top; }}
@@ -184,23 +210,34 @@ async def admin():
 </style>
 </head>
 <body>
-<h1>Kingdom Age — Query Log</h1>
-<div class="meta">Showing {len(rows):,} of {total:,} total queries</div>
-<table>
-  <thead>
-    <tr>
-      <th>Time (UTC)</th>
-      <th>Question</th>
-      <th>Model</th>
-      <th>Response Time</th>
-      <th>Sources</th>
-      <th>Session</th>
-    </tr>
-  </thead>
-  <tbody>
-    {rows_html if rows_html else '<tr><td colspan="6" style="text-align:center;color:#999;padding:40px">No queries yet.</td></tr>'}
-  </tbody>
-</table>
+  <div class="ka-header">
+    <div style="position:relative;height:52px;width:108px;">
+      <img src="https://kingdomage.org/wp-content/uploads/2017/10/logo@3x.png"
+        style="position:absolute;inset:0;height:52px;width:auto;filter:sepia(1) saturate(4) hue-rotate(5deg) brightness(1.3);clip-path:inset(0 62% 0 0);" />
+      <img src="https://kingdomage.org/wp-content/uploads/2017/10/logo@3x.png"
+        style="position:absolute;inset:0;height:52px;width:auto;filter:brightness(0) invert(1);clip-path:inset(0 0 0 34%);" />
+    </div>
+  </div>
+  <div class="ka-subheader">
+    <h1>Kingdom Age <span>Chat</span> Query Log</h1>
+  </div>
+  <div class="content">
+    <div class="meta">Showing {len(rows):,} of {total:,} total queries</div>
+    <table>
+      <thead>
+        <tr>
+          <th>Time (UTC)</th>
+          <th>Question</th>
+          <th>Model</th>
+          <th>Response Time</th>
+          <th>Session</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows_html if rows_html else '<tr><td colspan="5" style="text-align:center;color:#999;padding:40px">No queries yet.</td></tr>'}
+      </tbody>
+    </table>
+  </div>
 </body>
 </html>"""
     return HTMLResponse(content=html)
