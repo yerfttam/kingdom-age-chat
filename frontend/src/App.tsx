@@ -28,7 +28,7 @@ const MODELS = [
   ]},
 ]
 
-const VERSION = 'v2.2.2'
+const VERSION = 'v2.2.3'
 
 /* ─── App ───────────────────────────────────────────────────────── */
 
@@ -76,7 +76,7 @@ export default function App() {
     <div className="flex flex-col h-dvh w-full">
 
       {/* ── Top bar ── */}
-      <div className="flex items-center justify-center flex-shrink-0 pt-5 pb-2 px-6 bg-[#8b0000]">
+      <div className="flex items-center justify-center flex-shrink-0 px-6 bg-[#8b0000]" style={{ paddingTop: '20px', paddingBottom: '8px' }}>
         <div className="relative h-[52px] w-[108px]">
           <img src="https://kingdomage.org/wp-content/uploads/2017/10/logo@3x.png" alt=""
             className="absolute inset-0 h-[52px] w-auto"
