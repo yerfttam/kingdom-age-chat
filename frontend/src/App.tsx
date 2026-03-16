@@ -37,7 +37,7 @@ const MODELS = [
   ]},
 ]
 
-const VERSION = 'v2.4.1'
+const VERSION = 'v2.5.0'
 
 /* ─── App ───────────────────────────────────────────────────────── */
 
@@ -120,7 +120,7 @@ export default function App() {
         {handler.messages.length === 0 && (
           <div className="flex-1 flex flex-col items-center justify-center text-center py-16 gap-2 px-4">
             <h2 className="ka-welcome-heading">Ask Anything</h2>
-            <p className="text-sm text-[#aaa]">Answers sourced from Kingdom Age video transcripts</p>
+            <p className="text-sm text-[#aaa]">Answers sourced from Kingdom Age teachings</p>
           </div>
         )}
 
@@ -164,7 +164,7 @@ export default function App() {
         {handler.status === 'submitted' && (
           <div className="flex flex-col gap-1.5 items-start px-4">
             <div className="ka-label text-[#888]">Kingdom Age</div>
-            <div className="text-sm text-[#aaa] italic">Searching videos…</div>
+            <div className="text-sm text-[#aaa] italic">Searching…</div>
           </div>
         )}
 
