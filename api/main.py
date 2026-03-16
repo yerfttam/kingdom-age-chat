@@ -5,7 +5,7 @@ FastAPI backend — exposes a /chat endpoint and serves the frontend.
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, StreamingResponse, HTMLResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 from typing import Optional, List
 import logging
@@ -131,8 +131,13 @@ async def health():
     return {"status": "ok"}
 
 
-@app.get("/admin", response_class=HTMLResponse)
-async def admin():
+@app.get("/admin")
+async def admin_page():
+    return FileResponse(os.path.join(FRONTEND_DIST, 'index.html'))
+
+
+@app.get("/admin/data")
+async def admin_data():
     from db import get_conn
     conn = get_conn()
     rows = []
@@ -143,107 +148,25 @@ async def admin():
                 cur.execute("SELECT COUNT(*) FROM queries")
                 total = cur.fetchone()[0]
                 cur.execute("""
-                    SELECT created_at, question, model, response_ms, num_sources, session_id
+                    SELECT created_at, question, model, response_ms, session_id
                     FROM queries
                     ORDER BY created_at DESC
                     LIMIT 200
                 """)
-                rows = cur.fetchall()
+                raw = cur.fetchall()
+                rows = [
+                    {
+                        "created_at": r[0].strftime("%Y-%m-%d %H:%M:%S") if r[0] else "",
+                        "question": r[1] or "",
+                        "model": r[2] or "",
+                        "response_ms": r[3],
+                        "session_id": r[4] or "",
+                    }
+                    for r in raw
+                ]
         except Exception as e:
             logger.error(f"Admin query failed: {e}")
-
-    rows_html = ""
-    for r in rows:
-        created_at, question, model, response_ms, num_sources, session_id = r
-        dt = created_at.strftime("%Y-%m-%d %H:%M:%S") if created_at else ""
-        q = question[:120] + "…" if question and len(question) > 120 else (question or "")
-        ms = f"{response_ms:,} ms" if response_ms else "—"
-        rows_html += f"""
-        <tr>
-            <td>{dt}</td>
-            <td title="{question}">{q}</td>
-            <td>{model or '—'}</td>
-            <td>{ms}</td>
-            <td style="font-size:0.7rem;color:#999">{(session_id or '')[:8]}</td>
-        </tr>"""
-
-    html = f"""<!DOCTYPE html>
-<html>
-<head>
-<title>Kingdom Age Chat Administration</title>
-<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@700&display=swap" rel="stylesheet">
-<style>
-  * {{ box-sizing: border-box; margin: 0; padding: 0; }}
-  body {{ font-family: -apple-system, sans-serif; background: #f5f5f5; color: #222; }}
-  .ka-header {{
-    background: #8b0000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 20px 24px 8px;
-  }}
-  .ka-header img {{
-    height: 52px;
-    width: auto;
-  }}
-  .ka-subheader {{
-    background: white;
-    border-bottom: 2px solid #e8e8e8;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 10px 24px;
-  }}
-  .ka-subheader h1 {{
-    font-family: "Barlow", Helvetica, Arial, sans-serif;
-    font-size: 1.05rem;
-    font-weight: 700;
-    color: #1a1a1a;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-  }}
-  .ka-subheader h1 span {{ color: #1a1a1a; }}
-  .content {{ padding: 24px; }}
-  .meta {{ font-size: 0.85rem; color: #666; margin-bottom: 16px; }}
-  table {{ width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.1); }}
-  th {{ background: #8b0000; color: white; text-align: left; padding: 10px 14px; font-size: 0.8rem; font-weight: 600; }}
-  td {{ padding: 9px 14px; font-size: 0.82rem; border-bottom: 1px solid #f0f0f0; vertical-align: top; }}
-  tr:last-child td {{ border-bottom: none; }}
-  tr:hover td {{ background: #fafafa; }}
-</style>
-</head>
-<body>
-  <div class="ka-header">
-    <div style="position:relative;height:52px;width:108px;">
-      <img src="https://kingdomage.org/wp-content/uploads/2017/10/logo@3x.png"
-        style="position:absolute;inset:0;height:52px;width:auto;filter:sepia(1) saturate(4) hue-rotate(5deg) brightness(1.3);clip-path:inset(0 62% 0 0);" />
-      <img src="https://kingdomage.org/wp-content/uploads/2017/10/logo@3x.png"
-        style="position:absolute;inset:0;height:52px;width:auto;filter:brightness(0) invert(1);clip-path:inset(0 0 0 34%);" />
-    </div>
-  </div>
-  <div class="ka-subheader">
-    <h1>Kingdom Age <span>Chat</span> Query Log</h1>
-  </div>
-  <div class="content">
-    <div class="meta">Showing {len(rows):,} of {total:,} total queries</div>
-    <table>
-      <thead>
-        <tr>
-          <th>Time (UTC)</th>
-          <th>Question</th>
-          <th>Model</th>
-          <th>Response Time</th>
-          <th>Session</th>
-        </tr>
-      </thead>
-      <tbody>
-        {rows_html if rows_html else '<tr><td colspan="5" style="text-align:center;color:#999;padding:40px">No queries yet.</td></tr>'}
-      </tbody>
-    </table>
-  </div>
-</body>
-</html>"""
-    return HTMLResponse(content=html)
+    return {"rows": rows, "total": total}
 
 
 # Serve frontend (React build output)
