@@ -171,6 +171,7 @@ async def admin():
 <html>
 <head>
 <title>Kingdom Age Chat Administration</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@700&display=swap" rel="stylesheet">
 <style>
   * {{ box-sizing: border-box; margin: 0; padding: 0; }}
   body {{ font-family: -apple-system, sans-serif; background: #f5f5f5; color: #222; }}
@@ -194,10 +195,12 @@ async def admin():
     padding: 10px 24px;
   }}
   .ka-subheader h1 {{
-    font-size: 1.1rem;
-    font-weight: 600;
+    font-family: "Barlow", Helvetica, Arial, sans-serif;
+    font-size: 1.05rem;
+    font-weight: 700;
     color: #1a1a1a;
-    letter-spacing: 0.01em;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
   }}
   .ka-subheader h1 span {{ color: #1a1a1a; }}
   .content {{ padding: 24px; }}
