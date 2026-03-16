@@ -32,6 +32,12 @@ Both are configured in `.claude/launch.json` — use `preview_start` tools.
 
 Version scheme: `v{major}.{minor}.{patch}` — minor bump for new features, patch for fixes.
 
+## Git commit convention
+Always lead the commit message with the version number. Example:
+```
+v2.7.1 — admin page rebuilt in React, shares CSS with main app
+```
+
 ## Ingest pipeline
 - `ingest/fetch_videos.py` — scrape video list from YouTube channel
 - `ingest/fetch_transcripts.py` — fetch transcripts via Apify API
