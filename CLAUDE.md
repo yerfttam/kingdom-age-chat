@@ -42,7 +42,7 @@ Version scheme: `v{major}.{minor}.{patch}` — minor bump for new features, patc
 
 ## Key config (api/rag.py)
 - `CLAUDE_MODEL = "claude-sonnet-4-6"` — default model
-- `TOP_K = 20` — chunks retrieved from Pinecone per query
+- `POOL_K = 80`, `MIN_SCORE = 0.35`, `CHUNKS_PER_VIDEO = 2`, `MAX_VIDEOS = 20` — diversified retrieval config
 - Streaming via `/chat/stream` SSE endpoint; frontend uses `useKingdomAgeChat` hook
 
 ## Pinecone
