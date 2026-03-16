@@ -37,7 +37,7 @@ const MODELS = [
   ]},
 ]
 
-const VERSION = 'v2.6.0'
+const VERSION = 'v2.6.1'
 
 const PROMPT_CATEGORIES = [
   {
@@ -271,17 +271,25 @@ export default function App() {
       </div>
 
       {/* ── Toolbar ── */}
-      <div className="flex items-center justify-end flex-shrink-0 px-4 pb-3 pt-1 bg-white gap-3">
-        <select value={model} onChange={(e) => setModel(e.target.value)} className="ka-model-select">
-          {MODELS.map((g) => (
-            <optgroup key={g.group} label={g.group}>
-              {g.options.map((o) => (
-                <option key={o.value} value={o.value}>{o.label}</option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
-        <span className="text-[0.6rem] text-[#ccc]">{VERSION}</span>
+      <div className="flex items-center justify-between flex-shrink-0 px-4 pb-3 pt-1 bg-white gap-3">
+        <button
+          onClick={() => setShowAllPrompts(true)}
+          className="text-[0.7rem] text-[#aaa] hover:text-[#8b0000] transition-colors whitespace-nowrap"
+        >
+          Suggested Prompts
+        </button>
+        <div className="flex items-center gap-3">
+          <select value={model} onChange={(e) => setModel(e.target.value)} className="ka-model-select">
+            {MODELS.map((g) => (
+              <optgroup key={g.group} label={g.group}>
+                {g.options.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+          <span className="text-[0.6rem] text-[#ccc]">{VERSION}</span>
+        </div>
       </div>
 
       {/* ── All prompts modal ── */}
