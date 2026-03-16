@@ -59,8 +59,17 @@ def embed_query(text: str) -> list[float]:
     return response.data[0].embedding
 
 
-def retrieve(question: str) -> list[dict]:
-    embedding = embed_query(question)
+def build_retrieval_query(question: str, history: list[dict]) -> str:
+    """Prepend the last user turn so follow-up questions retrieve the right chunks."""
+    last_user = next((m["content"] for m in reversed(history) if m["role"] == "user"), None)
+    if last_user:
+        return last_user + " " + question
+    return question
+
+
+def retrieve(question: str, history: list[dict] = None) -> list[dict]:
+    query = build_retrieval_query(question, history or [])
+    embedding = embed_query(query)
     results = index().query(vector=embedding, top_k=POOL_K, include_metadata=True)
 
     # Step 3: filter by score threshold
@@ -116,8 +125,9 @@ def build_prompt(question: str, chunks: list[dict]) -> tuple:
     return SYSTEM_PROMPT, user_message
 
 
-def chat(question: str, model: str = CLAUDE_MODEL) -> dict:
-    chunks = retrieve(question)
+def chat(question: str, model: str = CLAUDE_MODEL, history: list[dict] = None) -> dict:
+    history = history or []
+    chunks = retrieve(question, history)
 
     if not chunks:
         return {
@@ -127,14 +137,15 @@ def chat(question: str, model: str = CLAUDE_MODEL) -> dict:
 
     system_prompt, user_message = build_prompt(question, chunks)
 
+    # Build messages: prior turns + current question with RAG context
+    prior = [{"role": m["role"], "content": m["content"]} for m in history]
+    current = {"role": "user", "content": user_message}
+
     if model.startswith("gpt-"):
         response = openai_client.chat.completions.create(
             model=model,
             max_tokens=4096,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_message},
-            ]
+            messages=[{"role": "system", "content": system_prompt}] + prior + [current]
         )
         answer = response.choices[0].message.content
     else:
@@ -142,7 +153,7 @@ def chat(question: str, model: str = CLAUDE_MODEL) -> dict:
             model=model,
             max_tokens=4096,
             system=system_prompt,
-            messages=[{"role": "user", "content": user_message}]
+            messages=prior + [current]
         )
         answer = response.content[0].text
 
@@ -157,9 +168,10 @@ def chat(question: str, model: str = CLAUDE_MODEL) -> dict:
     return {"answer": answer, "sources": sources}
 
 
-def stream_chat(question: str, model: str = CLAUDE_MODEL):
+def stream_chat(question: str, model: str = CLAUDE_MODEL, history: list[dict] = None):
     """Sync generator that yields SSE-formatted strings for streaming responses."""
-    chunks = retrieve(question)
+    history = history or []
+    chunks = retrieve(question, history)
 
     if not chunks:
         no_results = "I couldn't find anything relevant in the Kingdom Age videos for that question."
@@ -177,14 +189,15 @@ def stream_chat(question: str, model: str = CLAUDE_MODEL):
             seen.add(c["url"])
             sources.append({"title": c["title"], "url": c["url"]})
 
+    # Build messages: prior turns + current question with RAG context
+    prior = [{"role": m["role"], "content": m["content"]} for m in history]
+    current = {"role": "user", "content": user_message}
+
     if model.startswith("gpt-"):
         response = openai_client.chat.completions.create(
             model=model,
             max_tokens=4096,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_message},
-            ],
+            messages=[{"role": "system", "content": system_prompt}] + prior + [current],
             stream=True,
         )
         for chunk in response:
@@ -196,7 +209,7 @@ def stream_chat(question: str, model: str = CLAUDE_MODEL):
             model=model,
             max_tokens=4096,
             system=system_prompt,
-            messages=[{"role": "user", "content": user_message}],
+            messages=prior + [current],
         ) as stream:
             for delta in stream.text_stream:
                 yield "data: " + json.dumps({"type": "text", "delta": delta}) + "\n\n"

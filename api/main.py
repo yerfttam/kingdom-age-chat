@@ -55,9 +55,15 @@ ALLOWED_MODELS = {
     "gpt-4o",
 }
 
+class HistoryMessage(BaseModel):
+    role: str
+    content: str
+
+
 class ChatRequest(BaseModel):
     question: str
     model: str = "claude-sonnet-4-6"
+    history: list[HistoryMessage] = []
 
 
 class Source(BaseModel):
@@ -76,7 +82,8 @@ async def chat_endpoint(req: ChatRequest):
         raise HTTPException(status_code=400, detail="Question cannot be empty.")
     if req.model not in ALLOWED_MODELS:
         raise HTTPException(status_code=400, detail=f"Unknown model: {req.model}")
-    result = chat(req.question, model=req.model)
+    history = [{"role": m.role, "content": m.content} for m in req.history]
+    result = chat(req.question, model=req.model, history=history)
     return result
 
 
@@ -86,8 +93,9 @@ async def chat_stream_endpoint(req: ChatRequest):
         raise HTTPException(status_code=400, detail="Question cannot be empty.")
     if req.model not in ALLOWED_MODELS:
         raise HTTPException(status_code=400, detail=f"Unknown model: {req.model}")
+    history = [{"role": m.role, "content": m.content} for m in req.history]
     return StreamingResponse(
-        stream_chat(req.question, model=req.model),
+        stream_chat(req.question, model=req.model, history=history),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )

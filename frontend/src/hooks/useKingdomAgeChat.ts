@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import type { ChatHandler, Message } from '@llamaindex/chat-ui'
 
 type SourceItem = { title: string; url: string }
@@ -11,9 +11,25 @@ function textMessage(role: Message['role'], text: string): Message {
   return { id: makeId(), role, parts: [{ type: 'text', text }] }
 }
 
+function getText(msg: Message): string {
+  const part = msg.parts.find((p) => p.type === 'text')
+  return part && 'text' in part ? part.text : ''
+}
+
 export function useKingdomAgeChat(getModel: () => string): ChatHandler {
   const [messages, setMessages] = useState<Message[]>([])
   const [status, setStatus] = useState<ChatHandler['status']>('ready')
+  const messagesRef = useRef<Message[]>(messages)
+
+  // Keep ref in sync so sendMessage always sees current messages without
+  // needing to be recreated on every state update
+  const syncedSetMessages: typeof setMessages = (updater) => {
+    setMessages((prev) => {
+      const next = typeof updater === 'function' ? updater(prev) : updater
+      messagesRef.current = next
+      return next
+    })
+  }
 
   const sendMessage = useCallback(
     async (msg: Message) => {
@@ -21,14 +37,20 @@ export function useKingdomAgeChat(getModel: () => string): ChatHandler {
       const text = textPart && 'text' in textPart ? textPart.text : ''
       if (!text.trim()) return
 
-      setMessages((prev) => [...prev, msg])
+      // Snapshot history BEFORE adding the new user message
+      const history = messagesRef.current.map((m) => ({
+        role: m.role as string,
+        content: getText(m),
+      }))
+
+      syncedSetMessages((prev) => [...prev, msg])
       setStatus('submitted')
 
       try {
         const res = await fetch('/chat/stream', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ question: text, model: getModel() }),
+          body: JSON.stringify({ question: text, model: getModel(), history }),
         })
 
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
@@ -40,7 +62,7 @@ export function useKingdomAgeChat(getModel: () => string): ChatHandler {
         let streamingText = ''
         const streamingId = makeId()
 
-        setMessages((prev) => [
+        syncedSetMessages((prev) => [
           ...prev,
           { id: streamingId, role: 'assistant', parts: [{ type: 'text', text: '' }] },
         ])
@@ -62,7 +84,7 @@ export function useKingdomAgeChat(getModel: () => string): ChatHandler {
             if (event.type === 'text' && event.delta) {
               streamingText += event.delta
               const captured = streamingText
-              setMessages((prev) =>
+              syncedSetMessages((prev) =>
                 prev.map((m) =>
                   m.id === streamingId
                     ? { ...m, parts: [{ type: 'text', text: captured }] }
@@ -71,7 +93,7 @@ export function useKingdomAgeChat(getModel: () => string): ChatHandler {
               )
             } else if (event.type === 'sources' && event.sources) {
               const sources = event.sources
-              setMessages((prev) =>
+              syncedSetMessages((prev) =>
                 prev.map((m) => {
                   if (m.id !== streamingId) return m
                   const parts: Message['parts'] = [{ type: 'text', text: streamingText }]
@@ -96,7 +118,7 @@ export function useKingdomAgeChat(getModel: () => string): ChatHandler {
 
         setStatus('ready')
       } catch {
-        setMessages((prev) => [
+        syncedSetMessages((prev) => [
           ...prev,
           textMessage('assistant', 'Something went wrong. Please try again.'),
         ])
