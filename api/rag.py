@@ -18,7 +18,24 @@ anthropic_client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
 EMBED_MODEL = "text-embedding-3-small"
 CLAUDE_MODEL = "claude-sonnet-4-6"
-TOP_K = 20  # number of chunks to retrieve (~10k tokens of context)
+
+# Retrieval config
+POOL_K = 80          # chunks fetched from Pinecone before filtering
+MIN_SCORE = 0.35     # drop chunks below this cosine similarity
+CHUNKS_PER_VIDEO = 2 # max chunks per video (ensures breadth across a series)
+MAX_VIDEOS = 20      # max distinct videos in final context
+
+SYSTEM_PROMPT = """You are a knowledgeable assistant for Kingdom Age, a Christian ministry that teaches on the transition from the Church Age to the Kingdom Age — a new era in which God is actively establishing His kingdom on earth through His people.
+
+The content comes from hundreds of video teachings covering topics such as: the Kingdom of God, the 7 Spirits of God, spiritual authority, prayer, intercession, end-times theology, the nature of the Church, discipleship, and prophetic ministry.
+
+When answering:
+- Synthesize insights from ALL provided sources, not just one or two
+- If multiple videos address the same topic from different angles, weave them together into a comprehensive, unified answer
+- Be thorough — these are theological topics that deserve full treatment
+- Stay grounded in what the transcripts actually say; do not add outside theology not present in the sources
+- If the sources only partially address the question, answer what you can and honestly note what is not covered
+- Do not mention, list, or cite sources in your answer — they are shown separately in the UI"""
 
 
 def get_pinecone_index():
@@ -44,7 +61,27 @@ def embed_query(text: str) -> list[float]:
 
 def retrieve(question: str) -> list[dict]:
     embedding = embed_query(question)
-    results = index().query(vector=embedding, top_k=TOP_K, include_metadata=True)
+    results = index().query(vector=embedding, top_k=POOL_K, include_metadata=True)
+
+    # Step 3: filter by score threshold
+    matches = [m for m in results["matches"] if m["score"] >= MIN_SCORE]
+
+    # Step 1: diversify — cap at CHUNKS_PER_VIDEO per video, up to MAX_VIDEOS
+    seen_videos = {}
+    for m in matches:
+        vid = m["metadata"].get("video_id", m["metadata"]["url"])
+        if vid not in seen_videos:
+            if len(seen_videos) >= MAX_VIDEOS:
+                continue
+            seen_videos[vid] = []
+        if len(seen_videos[vid]) < CHUNKS_PER_VIDEO:
+            seen_videos[vid].append(m)
+
+    # Flatten in video order (best-scoring video first)
+    diverse_matches = []
+    for vid_chunks in seen_videos.values():
+        diverse_matches.extend(vid_chunks)
+
     return [
         {
             "text": m["metadata"]["text"],
@@ -52,25 +89,31 @@ def retrieve(question: str) -> list[dict]:
             "url": m["metadata"]["url"],
             "score": round(m["score"], 3),
         }
-        for m in results["matches"]
+        for m in diverse_matches
     ]
 
 
-def build_prompt(question: str, chunks: list[dict]) -> str:
-    context = "\n\n".join(
-        f'[Source: "{c["title"]}" — {c["url"]}]\n{c["text"]}'
-        for c in chunks
-    )
-    return f"""You are a helpful assistant for the Kingdom Age YouTube channel.
-Answer the question below using only the provided video transcript excerpts.
-Be clear, concise, and grounded in the sources.
-If the answer isn't in the sources, say so honestly.
-Do not list or mention sources in your answer.
+def build_context(chunks: list[dict]) -> str:
+    # Group chunks by URL so same-video chunks appear together
+    grouped = {}
+    for c in chunks:
+        if c["url"] not in grouped:
+            grouped[c["url"]] = {"title": c["title"], "url": c["url"], "texts": []}
+        grouped[c["url"]]["texts"].append(c["text"])
 
-TRANSCRIPT EXCERPTS:
-{context}
+    parts = []
+    for g in grouped.values():
+        combined = "\n\n".join(g["texts"])
+        parts.append('[Source: "' + g["title"] + '" — ' + g["url"] + ']\n' + combined)
 
-QUESTION: {question}"""
+    return "\n\n---\n\n".join(parts)
+
+
+def build_prompt(question: str, chunks: list[dict]) -> tuple:
+    """Returns (system_prompt, user_message) for use with the LLM."""
+    context = build_context(chunks)
+    user_message = "TRANSCRIPT EXCERPTS:\n" + context + "\n\nQUESTION: " + question
+    return SYSTEM_PROMPT, user_message
 
 
 def chat(question: str, model: str = CLAUDE_MODEL) -> dict:
@@ -82,20 +125,24 @@ def chat(question: str, model: str = CLAUDE_MODEL) -> dict:
             "sources": []
         }
 
-    prompt = build_prompt(question, chunks)
+    system_prompt, user_message = build_prompt(question, chunks)
 
     if model.startswith("gpt-"):
         response = openai_client.chat.completions.create(
             model=model,
             max_tokens=4096,
-            messages=[{"role": "user", "content": prompt}]
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message},
+            ]
         )
         answer = response.choices[0].message.content
     else:
         response = anthropic_client.messages.create(
             model=model,
             max_tokens=4096,
-            messages=[{"role": "user", "content": prompt}]
+            system=system_prompt,
+            messages=[{"role": "user", "content": user_message}]
         )
         answer = response.content[0].text
 
@@ -116,12 +163,12 @@ def stream_chat(question: str, model: str = CLAUDE_MODEL):
 
     if not chunks:
         no_results = "I couldn't find anything relevant in the Kingdom Age videos for that question."
-        yield f"data: {json.dumps({'type': 'text', 'delta': no_results})}\n\n"
-        yield f"data: {json.dumps({'type': 'sources', 'sources': []})}\n\n"
+        yield "data: " + json.dumps({"type": "text", "delta": no_results}) + "\n\n"
+        yield "data: " + json.dumps({"type": "sources", "sources": []}) + "\n\n"
         yield 'data: {"type": "done"}\n\n'
         return
 
-    prompt = build_prompt(question, chunks)
+    system_prompt, user_message = build_prompt(question, chunks)
 
     seen = set()
     sources = []
@@ -134,21 +181,25 @@ def stream_chat(question: str, model: str = CLAUDE_MODEL):
         response = openai_client.chat.completions.create(
             model=model,
             max_tokens=4096,
-            messages=[{"role": "user", "content": prompt}],
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_message},
+            ],
             stream=True,
         )
         for chunk in response:
             delta = chunk.choices[0].delta.content
             if delta:
-                yield f"data: {json.dumps({'type': 'text', 'delta': delta})}\n\n"
+                yield "data: " + json.dumps({"type": "text", "delta": delta}) + "\n\n"
     else:
         with anthropic_client.messages.stream(
             model=model,
             max_tokens=4096,
-            messages=[{"role": "user", "content": prompt}],
+            system=system_prompt,
+            messages=[{"role": "user", "content": user_message}],
         ) as stream:
             for delta in stream.text_stream:
-                yield f"data: {json.dumps({'type': 'text', 'delta': delta})}\n\n"
+                yield "data: " + json.dumps({"type": "text", "delta": delta}) + "\n\n"
 
-    yield f"data: {json.dumps({'type': 'sources', 'sources': sources})}\n\n"
+    yield "data: " + json.dumps({"type": "sources", "sources": sources}) + "\n\n"
     yield 'data: {"type": "done"}\n\n'
