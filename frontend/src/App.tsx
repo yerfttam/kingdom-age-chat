@@ -196,7 +196,7 @@ export default function App() {
               onClick={() => setShowAllPrompts(true)}
               className="text-xs text-[#aaa] hover:text-[#8b0000] transition-colors mt-1"
             >
-              See all questions →
+              See all suggested prompts →
             </button>
           </div>
         )}
