@@ -112,7 +112,7 @@ async def chat_stream_endpoint(req: ChatRequest):
                 try:
                     if chunk.startswith("data: "):
                         parsed = _json.loads(chunk[6:])
-                        num_sources = len(parsed.get("nodes", []))
+                        num_sources = len(parsed.get("sources", []))
                 except Exception:
                     pass
             yield chunk
@@ -185,7 +185,7 @@ async def admin():
 </head>
 <body>
 <h1>Kingdom Age — Query Log</h1>
-<div class="meta">Showing last 200 of {total:,} total queries</div>
+<div class="meta">Showing {len(rows):,} of {total:,} total queries</div>
 <table>
   <thead>
     <tr>
