@@ -16,6 +16,9 @@ function getText(msg: Message): string {
   return part && 'text' in part ? part.text : ''
 }
 
+// Stable session ID for this browser session
+const SESSION_ID = Math.random().toString(36).slice(2)
+
 export function useKingdomAgeChat(getModel: () => string): ChatHandler {
   const [messages, setMessages] = useState<Message[]>([])
   const [status, setStatus] = useState<ChatHandler['status']>('ready')
@@ -50,7 +53,7 @@ export function useKingdomAgeChat(getModel: () => string): ChatHandler {
         const res = await fetch('/chat/stream', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ question: text, model: getModel(), history }),
+          body: JSON.stringify({ question: text, model: getModel(), history, session_id: SESSION_ID }),
         })
 
         if (!res.ok) throw new Error(`HTTP ${res.status}`)

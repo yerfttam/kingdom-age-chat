@@ -10,12 +10,14 @@ from pydantic import BaseModel
 import logging
 import os
 import sys
+import time
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 sys.path.insert(0, os.path.dirname(__file__))
 from rag import chat, stream_chat
+from db import init_db, log_query
 
 
 @asynccontextmanager
@@ -38,6 +40,9 @@ async def lifespan(app: FastAPI):
         logger.info(f"OK Pinecone connected — {stats.total_vector_count} vectors indexed")
     except Exception as e:
         logger.error(f"FAIL Pinecone connection failed: {e}")
+
+    # Initialize database
+    init_db()
 
     yield
 
@@ -62,8 +67,9 @@ class HistoryMessage(BaseModel):
 
 class ChatRequest(BaseModel):
     question: str
-    model: str = "claude-sonnet-4-6"
+    model: str = "claude-opus-4-6"
     history: list[HistoryMessage] = []
+    session_id: str = None
 
 
 class Source(BaseModel):
@@ -94,8 +100,27 @@ async def chat_stream_endpoint(req: ChatRequest):
     if req.model not in ALLOWED_MODELS:
         raise HTTPException(status_code=400, detail=f"Unknown model: {req.model}")
     history = [{"role": m.role, "content": m.content} for m in req.history]
+    session_id = req.session_id if hasattr(req, 'session_id') else None
+
+    def logged_stream():
+        start = time.time()
+        num_sources = 0
+        for chunk in stream_chat(req.question, model=req.model, history=history):
+            if b'"type":"sources"' in chunk or '"type":"sources"' in chunk:
+                import json as _json
+                try:
+                    data = chunk.decode() if isinstance(chunk, bytes) else chunk
+                    if data.startswith("data: "):
+                        parsed = _json.loads(data[6:])
+                        num_sources = len(parsed.get("nodes", []))
+                except Exception:
+                    pass
+            yield chunk
+        response_ms = int((time.time() - start) * 1000)
+        log_query(req.question, req.model, response_ms, num_sources, session_id)
+
     return StreamingResponse(
-        stream_chat(req.question, model=req.model, history=history),
+        logged_stream(),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
