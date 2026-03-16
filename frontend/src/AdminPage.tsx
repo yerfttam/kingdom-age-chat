@@ -18,6 +18,23 @@ export default function AdminPage() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    // Allow native browser scroll on admin page (global CSS sets overflow: hidden)
+    const root = document.getElementById('root')
+    document.documentElement.style.overflow = 'auto'
+    document.documentElement.style.height = 'auto'
+    document.body.style.overflow = 'auto'
+    document.body.style.height = 'auto'
+    if (root) { root.style.overflow = 'auto'; root.style.height = 'auto' }
+    return () => {
+      document.documentElement.style.overflow = ''
+      document.documentElement.style.height = ''
+      document.body.style.overflow = ''
+      document.body.style.height = ''
+      if (root) { root.style.overflow = ''; root.style.height = '' }
+    }
+  }, [])
+
+  useEffect(() => {
     fetch('/admin/data')
       .then(r => r.json())
       .then(setData)
@@ -47,7 +64,7 @@ export default function AdminPage() {
       </div>
 
       {/* ── Content ── */}
-      <div className="flex-1" style={{ padding: '24px' }}>
+      <div style={{ padding: '24px' }}>
         {error && (
           <div className="text-red-600 text-sm mb-4">{error}</div>
         )}
@@ -58,41 +75,19 @@ export default function AdminPage() {
           </p>
         )}
 
-        <div className="bg-white shadow-sm overflow-hidden border border-[#f0f0f0]">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr>
-                {['Time (UTC)', 'Question', 'Model', 'Response Time', 'Session'].map(h => (
-                  <th key={h} className="ka-label text-left px-4 py-3 bg-[#8b0000] text-white">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {!data && !error && (
-                <tr><td colSpan={5} className="text-center text-[#aaa] py-10 text-sm">Loading…</td></tr>
-              )}
-              {data && data.rows.length === 0 && (
-                <tr><td colSpan={5} className="text-center text-[#aaa] py-10 text-sm">No queries yet.</td></tr>
-              )}
-              {data && data.rows.map((row, i) => (
-                <tr key={i} className="border-b border-[#f0f0f0] last:border-0 hover:bg-[#fafafa]">
-                  <td className="px-4 py-3 text-sm text-[#53585c] whitespace-nowrap">{row.created_at}</td>
-                  <td className="px-4 py-3 text-sm text-[#2c2c2c] max-w-md" title={row.question}>
-                    {row.question.length > 120 ? row.question.slice(0, 120) + '…' : row.question}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-[#53585c]">{row.model || '—'}</td>
-                  <td className="px-4 py-3 text-sm text-[#53585c] whitespace-nowrap">
-                    {row.response_ms ? row.response_ms.toLocaleString() + ' ms' : '—'}
-                  </td>
-                  <td className="px-4 py-3 text-[0.7rem] text-[#aaa]">
-                    {(row.session_id || '').slice(0, 8)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="bg-white border border-[#f0f0f0] shadow-sm">
+          {!data && !error && (
+            <div className="text-center text-[#aaa] py-10 text-sm">Loading…</div>
+          )}
+          {data && data.rows.length === 0 && (
+            <div className="text-center text-[#aaa] py-10 text-sm">No queries yet.</div>
+          )}
+          {data && data.rows.map((row, i) => (
+            <div key={i} className="px-4 py-4 border-b border-[#f0f0f0] last:border-0 hover:bg-[#fafafa]">
+              <div className="text-[0.7rem] text-[#aaa] mb-1">{row.created_at}</div>
+              <div className="text-sm text-[#2c2c2c]">{row.question}</div>
+            </div>
+          ))}
         </div>
       </div>
 
