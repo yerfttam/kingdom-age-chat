@@ -37,7 +37,7 @@ const MODELS = [
   ]},
 ]
 
-const VERSION = 'v2.6.2'
+const VERSION = 'v2.6.3'
 
 const PROMPT_CATEGORIES = [
   {
@@ -271,14 +271,15 @@ export default function App() {
       </div>
 
       {/* ── Toolbar ── */}
-      <div className="flex items-center justify-between flex-shrink-0 px-4 pb-3 pt-1 bg-white gap-3">
+      <div className="flex items-center flex-shrink-0 px-4 pb-3 pt-1 bg-white gap-3">
+        <div className="flex-1" />
         <button
           onClick={() => setShowAllPrompts(true)}
           className="text-[0.7rem] text-[#aaa] hover:text-[#8b0000] transition-colors whitespace-nowrap"
         >
           Suggested Prompts
         </button>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-1 items-center justify-end gap-3">
           <select value={model} onChange={(e) => setModel(e.target.value)} className="ka-model-select">
             {MODELS.map((g) => (
               <optgroup key={g.group} label={g.group}>
