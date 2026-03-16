@@ -4,6 +4,7 @@ generate an answer with Claude, return answer + citations.
 """
 
 import os
+import json
 from openai import OpenAI
 from pinecone import Pinecone
 from anthropic import Anthropic
@@ -107,3 +108,47 @@ def chat(question: str, model: str = CLAUDE_MODEL) -> dict:
             sources.append({"title": c["title"], "url": c["url"]})
 
     return {"answer": answer, "sources": sources}
+
+
+def stream_chat(question: str, model: str = CLAUDE_MODEL):
+    """Sync generator that yields SSE-formatted strings for streaming responses."""
+    chunks = retrieve(question)
+
+    if not chunks:
+        no_results = "I couldn't find anything relevant in the Kingdom Age videos for that question."
+        yield f"data: {json.dumps({'type': 'text', 'delta': no_results})}\n\n"
+        yield f"data: {json.dumps({'type': 'sources', 'sources': []})}\n\n"
+        yield 'data: {"type": "done"}\n\n'
+        return
+
+    prompt = build_prompt(question, chunks)
+
+    seen = set()
+    sources = []
+    for c in chunks:
+        if c["url"] not in seen:
+            seen.add(c["url"])
+            sources.append({"title": c["title"], "url": c["url"]})
+
+    if model.startswith("gpt-"):
+        response = openai_client.chat.completions.create(
+            model=model,
+            max_tokens=4096,
+            messages=[{"role": "user", "content": prompt}],
+            stream=True,
+        )
+        for chunk in response:
+            delta = chunk.choices[0].delta.content
+            if delta:
+                yield f"data: {json.dumps({'type': 'text', 'delta': delta})}\n\n"
+    else:
+        with anthropic_client.messages.stream(
+            model=model,
+            max_tokens=4096,
+            messages=[{"role": "user", "content": prompt}],
+        ) as stream:
+            for delta in stream.text_stream:
+                yield f"data: {json.dumps({'type': 'text', 'delta': delta})}\n\n"
+
+    yield f"data: {json.dumps({'type': 'sources', 'sources': sources})}\n\n"
+    yield 'data: {"type": "done"}\n\n'

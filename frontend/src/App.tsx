@@ -33,14 +33,14 @@ const VERSION = 'v2.0.5'
 /* ─── App ───────────────────────────────────────────────────────── */
 
 export default function App() {
-  const [model, setModel]   = useState('claude-opus-4-6')
+  const [model, setModel]   = useState('claude-sonnet-4-6')
   const [input, setInput]   = useState('')
   const getModel            = useCallback(() => model, [model])
   const handler             = useKingdomAgeChat(getModel)
   const bottomRef           = useRef<HTMLDivElement>(null)
   const lastMsgRef          = useRef<HTMLDivElement>(null)
   const textareaRef         = useRef<HTMLTextAreaElement>(null)
-  const busy                = handler.status === 'submitted'
+  const busy                = handler.status === 'submitted' || handler.status === 'streaming'
 
   /* auto-scroll: user message → scroll to bottom; assistant reply → scroll to top of reply */
   useEffect(() => {
@@ -125,7 +125,7 @@ export default function App() {
           </div>
         ))}
 
-        {busy && (
+        {handler.status === 'submitted' && (
           <div className="flex flex-col gap-1.5 items-start px-4">
             <div className="ka-label text-[#888]">Kingdom Age</div>
             <div className="text-sm text-[#aaa] italic">Searching videos…</div>

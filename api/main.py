@@ -5,7 +5,7 @@ FastAPI backend — exposes a /chat endpoint and serves the frontend.
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 import logging
 import os
@@ -15,7 +15,7 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 sys.path.insert(0, os.path.dirname(__file__))
-from rag import chat
+from rag import chat, stream_chat
 
 
 @asynccontextmanager
@@ -78,6 +78,19 @@ async def chat_endpoint(req: ChatRequest):
         raise HTTPException(status_code=400, detail=f"Unknown model: {req.model}")
     result = chat(req.question, model=req.model)
     return result
+
+
+@app.post("/chat/stream")
+async def chat_stream_endpoint(req: ChatRequest):
+    if not req.question.strip():
+        raise HTTPException(status_code=400, detail="Question cannot be empty.")
+    if req.model not in ALLOWED_MODELS:
+        raise HTTPException(status_code=400, detail=f"Unknown model: {req.model}")
+    return StreamingResponse(
+        stream_chat(req.question, model=req.model),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
 
 
 @app.get("/health")
