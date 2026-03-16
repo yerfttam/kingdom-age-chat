@@ -25,7 +25,7 @@ cd frontend && npm run dev
 Both are configured in `.claude/launch.json` — use `preview_start` tools.
 
 ## Deploy checklist — ALWAYS do all of these before pushing
-1. **Bump the version** in `frontend/src/App.tsx` → `const VERSION`
+1. **Bump the version** in `frontend/src/App.tsx` → `const VERSION` — bump for EVERY change, even text tweaks
 2. **Rebuild the frontend**: `cd frontend && npm run build`
 3. **Stage and commit** including `frontend/dist/`
 4. **Push to main**: `git push origin main` — this triggers Railway redeploy
