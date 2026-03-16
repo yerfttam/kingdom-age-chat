@@ -17,7 +17,7 @@ openai_client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
 anthropic_client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
 EMBED_MODEL = "text-embedding-3-small"
-CLAUDE_MODEL = "claude-sonnet-4-6"
+CLAUDE_MODEL = "claude-opus-4-6"
 
 # Retrieval config
 POOL_K = 80          # chunks fetched from Pinecone before filtering

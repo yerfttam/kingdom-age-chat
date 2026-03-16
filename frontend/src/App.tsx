@@ -37,7 +37,7 @@ const MODELS = [
   ]},
 ]
 
-const VERSION = 'v2.6.4'
+const VERSION = 'v2.6.7'
 
 const PROMPT_CATEGORIES = [
   {
@@ -89,14 +89,16 @@ const ALL_PROMPTS = PROMPT_CATEGORIES.flatMap((c) => c.prompts)
 /* ─── App ───────────────────────────────────────────────────────── */
 
 export default function App() {
-  const [model, setModel]           = useState('claude-sonnet-4-6')
+  const [model, setModel]           = useState('claude-opus-4-6')
   const [input, setInput]           = useState('')
   const [showAllPrompts, setShowAllPrompts] = useState(false)
   const getModel                    = useCallback(() => model, [model])
   const handler                     = useKingdomAgeChat(getModel)
   const bottomRef                   = useRef<HTMLDivElement>(null)
   const lastMsgRef                  = useRef<HTMLDivElement>(null)
+  const scrollContainerRef          = useRef<HTMLDivElement>(null)
   const textareaRef                 = useRef<HTMLTextAreaElement>(null)
+  const userScrolledRef             = useRef(false)
   const busy                        = handler.status === 'submitted' || handler.status === 'streaming'
 
   /* pick 6 random prompts once on mount */
@@ -104,6 +106,23 @@ export default function App() {
     const shuffled = [...ALL_PROMPTS].sort(() => Math.random() - 0.5)
     return shuffled.slice(0, 6)
   }, [])
+
+  /* detect user scrolling away from bottom during streaming */
+  useEffect(() => {
+    const el = scrollContainerRef.current
+    if (!el) return
+    const onScroll = () => {
+      const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80
+      userScrolledRef.current = !nearBottom
+    }
+    el.addEventListener('scroll', onScroll, { passive: true })
+    return () => el.removeEventListener('scroll', onScroll)
+  }, [])
+
+  /* reset userScrolled when a new message starts */
+  useEffect(() => {
+    userScrolledRef.current = false
+  }, [handler.messages.length])
 
   /* auto-scroll: new message added → smooth scroll to start of reply or bottom */
   useEffect(() => {
@@ -115,9 +134,9 @@ export default function App() {
     }
   }, [handler.messages.length])
 
-  /* auto-scroll: follow streaming output to bottom */
+  /* auto-scroll: follow streaming output — stop if user scrolled up */
   useEffect(() => {
-    if (handler.status === 'streaming') {
+    if (handler.status === 'streaming' && !userScrolledRef.current) {
       bottomRef.current?.scrollIntoView({ behavior: 'instant' })
     }
   }, [handler.messages, handler.status])
@@ -173,7 +192,7 @@ export default function App() {
       </div>
 
       {/* ── Messages ── */}
-      <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden py-5 flex flex-col gap-5">
+      <div ref={scrollContainerRef} className="flex-1 min-h-0 overflow-y-auto py-5 px-4 flex flex-col gap-5">
 
         {handler.messages.length === 0 && (
           <div className="flex-1 flex flex-col items-center justify-center text-center py-10 gap-4 px-4">
@@ -204,12 +223,24 @@ export default function App() {
         {handler.messages.map((msg, i) => (
           <div key={msg.id}
             ref={i === handler.messages.length - 1 ? lastMsgRef : null}
-            className={`flex flex-col gap-1.5 px-4 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
+            className={`flex flex-col gap-1.5 ${msg.role === 'user' ? 'items-end' : 'items-start'}`}
           >
             <div className={`ka-label ${msg.role === 'user' ? 'text-[#c0392b]' : 'text-[#888]'}`}>
               {msg.role === 'user' ? 'You' : 'Kingdom Age'}
             </div>
             <div className={msg.role === 'user' ? 'ka-bubble-user' : 'ka-bubble-assistant'}>
+              {msg.role === 'assistant' && (
+                <button
+                  className="ka-copy-btn"
+                  onClick={() => {
+                    navigator.clipboard.writeText(getText(msg))
+                    const btn = document.getElementById('copy-' + msg.id)
+                    if (btn) { btn.textContent = '✓'; setTimeout(() => { btn.textContent = '⧉' }, 1500) }
+                  }}
+                  id={'copy-' + msg.id}
+                  title="Copy to clipboard"
+                >⧉</button>
+              )}
               {msg.role === 'assistant'
                 ? <div className="ka-markdown"><ReactMarkdown>{getText(msg)}</ReactMarkdown></div>
                 : getText(msg)
@@ -219,7 +250,7 @@ export default function App() {
               const sources = getSources(msg)
               if (!sources.length) return null
               return (
-                <details className="self-start">
+                <details className="self-start" style={{ marginLeft: '4px' }}>
                   <summary style={{ fontSize: '0.6rem', color: '#8b0000', cursor: 'pointer', listStyle: 'none', userSelect: 'none' }}>
                     {sources.length} source{sources.length !== 1 ? 's' : ''} ›
                   </summary>
@@ -239,7 +270,7 @@ export default function App() {
         ))}
 
         {handler.status === 'submitted' && (
-          <div className="flex flex-col gap-1.5 items-start px-4">
+          <div className="flex flex-col gap-1.5 items-start">
             <div className="ka-label text-[#888]">Kingdom Age</div>
             <div className="text-sm text-[#aaa] italic">Searching…</div>
           </div>
@@ -289,7 +320,7 @@ export default function App() {
               </optgroup>
             ))}
           </select>
-          <span className="text-[0.6rem] text-[#ccc]">{VERSION}</span>
+          <span className="text-[0.6rem] text-[#ccc] pr-2">{VERSION}</span>
         </div>
       </div>
 

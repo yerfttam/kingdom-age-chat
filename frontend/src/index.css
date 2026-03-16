@@ -41,6 +41,8 @@ body {
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+  margin-right: 4px;
+  margin-left: 4px;
 }
 
 /* User bubble */
@@ -53,6 +55,7 @@ body {
   line-height: 1.65;
   color: #2c2c2c;
   max-width: 80%;
+  margin-right: 4px;
   word-break: break-word;
   white-space: pre-wrap;
   box-shadow: 0 1px 3px rgba(0,0,0,0.06);
@@ -67,9 +70,34 @@ body {
   font-size: 0.95rem;
   line-height: 1.65;
   color: #2c2c2c;
-  max-width: 92%;
+  max-width: 95%;
   word-break: break-word;
   box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+  position: relative;
+}
+
+.ka-copy-btn {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.85rem;
+  color: #ccc;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s;
+  line-height: 1;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+
+.ka-bubble-assistant:hover .ka-copy-btn {
+  opacity: 1;
+}
+
+.ka-copy-btn:hover {
+  color: #8b0000;
 }
 
 /* Markdown content inside assistant bubble */
