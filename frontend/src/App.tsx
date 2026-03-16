@@ -28,7 +28,7 @@ const MODELS = [
   ]},
 ]
 
-const VERSION = 'v2.3.0'
+const VERSION = 'v2.3.1'
 
 /* ─── App ───────────────────────────────────────────────────────── */
 
@@ -42,7 +42,7 @@ export default function App() {
   const textareaRef         = useRef<HTMLTextAreaElement>(null)
   const busy                = handler.status === 'submitted' || handler.status === 'streaming'
 
-  /* auto-scroll: user message → scroll to bottom; assistant reply → scroll to top of reply */
+  /* auto-scroll: new message added → smooth scroll to start of reply or bottom */
   useEffect(() => {
     const last = handler.messages[handler.messages.length - 1]
     if (last?.role === 'assistant') {
@@ -51,6 +51,13 @@ export default function App() {
       bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
     }
   }, [handler.messages.length])
+
+  /* auto-scroll: follow streaming output to bottom */
+  useEffect(() => {
+    if (handler.status === 'streaming') {
+      bottomRef.current?.scrollIntoView({ behavior: 'instant' })
+    }
+  }, [handler.messages, handler.status])
 
   /* auto-grow textarea */
   const handleInput = () => {
