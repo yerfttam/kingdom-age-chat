@@ -103,15 +103,14 @@ async def chat_stream_endpoint(req: ChatRequest):
     session_id = req.session_id if hasattr(req, 'session_id') else None
 
     def logged_stream():
+        import json as _json
         start = time.time()
         num_sources = 0
         for chunk in stream_chat(req.question, model=req.model, history=history):
-            if b'"type":"sources"' in chunk or '"type":"sources"' in chunk:
-                import json as _json
+            if '"type":"sources"' in chunk:
                 try:
-                    data = chunk.decode() if isinstance(chunk, bytes) else chunk
-                    if data.startswith("data: "):
-                        parsed = _json.loads(data[6:])
+                    if chunk.startswith("data: "):
+                        parsed = _json.loads(chunk[6:])
                         num_sources = len(parsed.get("nodes", []))
                 except Exception:
                     pass
