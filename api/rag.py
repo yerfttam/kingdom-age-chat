@@ -61,17 +61,8 @@ def embed_query(text: str) -> list[float]:
     return response.data[0].embedding
 
 
-def build_retrieval_query(question: str, history: list[dict]) -> str:
-    """Prepend the last user turn so follow-up questions retrieve the right chunks."""
-    last_user = next((m["content"] for m in reversed(history) if m["role"] == "user"), None)
-    if last_user:
-        return last_user + " " + question
-    return question
-
-
 def retrieve(question: str, history: list[dict] = None) -> list[dict]:
-    query = build_retrieval_query(question, history or [])
-    embedding = embed_query(query)
+    embedding = embed_query(question)
     results = index().query(vector=embedding, top_k=POOL_K, include_metadata=True)
 
     # Step 3: filter by score threshold
