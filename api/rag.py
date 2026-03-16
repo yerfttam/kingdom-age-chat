@@ -35,7 +35,9 @@ When answering:
 - Be thorough — these are theological topics that deserve full treatment
 - Stay grounded in what the transcripts actually say; do not add outside theology not present in the sources
 - If the sources only partially address the question, answer what you can and honestly note what is not covered
-- Do not mention, list, or cite sources in your answer — they are shown separately in the UI"""
+- Do not mention, list, or cite sources in your answer — they are shown separately in the UI
+
+In multi-turn conversations, your prior responses were based on transcript excerpts that are only provided with each new question — they are NOT carried forward. Do not treat specific details from your own prior answers as verified facts. If a follow-up question asks about something you mentioned previously that does not appear in the current TRANSCRIPT EXCERPTS, say clearly that you do not have that material in the current context rather than repeating or elaborating on it."""
 
 
 def get_pinecone_index():
@@ -126,7 +128,7 @@ def build_prompt(question: str, chunks: list[dict]) -> tuple:
 
 
 def chat(question: str, model: str = CLAUDE_MODEL, history: list[dict] = None) -> dict:
-    history = history or []
+    history = (history or [])[-6:]  # cap at last 3 exchanges
     chunks = retrieve(question, history)
 
     if not chunks:
@@ -170,7 +172,7 @@ def chat(question: str, model: str = CLAUDE_MODEL, history: list[dict] = None) -
 
 def stream_chat(question: str, model: str = CLAUDE_MODEL, history: list[dict] = None):
     """Sync generator that yields SSE-formatted strings for streaming responses."""
-    history = history or []
+    history = (history or [])[-6:]  # cap at last 3 exchanges
     chunks = retrieve(question, history)
 
     if not chunks:
