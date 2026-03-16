@@ -1,5 +1,8 @@
 # Kingdom Age Chat — Claude Instructions
 
+## For Claude: keeping this file useful
+Update this file whenever you learn something new about the project — a gotcha, a convention, a workflow step that wasn't obvious. The goal is that each session leaves this file slightly more complete than it found it. Commit updates to `CLAUDE.md` alongside the relevant code changes.
+
 ## What this project is
 A RAG-powered chat app over Kingdom Age YouTube video transcripts. Users ask questions; the backend embeds the query, retrieves relevant transcript chunks from Pinecone, and streams an answer via Claude or GPT.
 
