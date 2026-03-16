@@ -37,7 +37,7 @@ const MODELS = [
   ]},
 ]
 
-const VERSION = 'v2.6.3'
+const VERSION = 'v2.6.4'
 
 const PROMPT_CATEGORIES = [
   {
@@ -220,7 +220,7 @@ export default function App() {
               if (!sources.length) return null
               return (
                 <details className="self-start">
-                  <summary style={{ fontSize: '0.6rem', color: '#bbb', cursor: 'pointer', listStyle: 'none', userSelect: 'none' }}>
+                  <summary style={{ fontSize: '0.6rem', color: '#8b0000', cursor: 'pointer', listStyle: 'none', userSelect: 'none' }}>
                     {sources.length} source{sources.length !== 1 ? 's' : ''} ›
                   </summary>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '4px' }}>
