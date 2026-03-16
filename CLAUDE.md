@@ -63,6 +63,13 @@ Steps 1-3 done (as of v2.1.0). Steps 4-5 still to do:
 4. ⬜ Cohere reranking — re-score the diversified pool, keep top 12-15
 5. ⬜ Re-embed with `text-embedding-3-large` — requires full re-ingest (~2 hrs)
 
+## Database
+- PostgreSQL on Render (`ka_chat_db`)
+- **Local dev**: use the **External** Database URL in `.env` — `dpg-...oregon-postgres.render.com`
+- **Render production**: use the **Internal** Database URL in Render environment settings — `dpg-...-a` (no hostname suffix, faster and free within Render's network)
+- Same env var name in both: `DATABASE_URL`
+- `psycopg2-binary` must be installed locally: `.venv/bin/pip install psycopg2-binary --only-binary=:all:`
+
 ## Python environment
 - Use `python3` (not `python`) — venv at `.venv/`
 - Python 3.9 — no f-string backslashes, no `match` statements, no `str | None` union syntax
