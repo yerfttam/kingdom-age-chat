@@ -7,6 +7,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
+from typing import Optional, List
 import logging
 import os
 import sys
@@ -68,8 +69,8 @@ class HistoryMessage(BaseModel):
 class ChatRequest(BaseModel):
     question: str
     model: str = "claude-opus-4-6"
-    history: list[HistoryMessage] = []
-    session_id: str = None
+    history: List[HistoryMessage] = []
+    session_id: Optional[str] = None
 
 
 class Source(BaseModel):

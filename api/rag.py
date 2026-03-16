@@ -5,6 +5,7 @@ generate an answer with Claude, return answer + citations.
 
 import os
 import json
+from typing import Optional, List, Dict, Tuple
 from openai import OpenAI
 from pinecone import Pinecone
 from anthropic import Anthropic
@@ -61,7 +62,7 @@ def embed_query(text: str) -> list[float]:
     return response.data[0].embedding
 
 
-def retrieve(question: str, history: list[dict] = None) -> list[dict]:
+def retrieve(question: str, history: Optional[List[Dict]] = None) -> List[Dict]:
     embedding = embed_query(question)
     results = index().query(vector=embedding, top_k=POOL_K, include_metadata=True)
 
@@ -95,7 +96,7 @@ def retrieve(question: str, history: list[dict] = None) -> list[dict]:
     ]
 
 
-def build_context(chunks: list[dict]) -> str:
+def build_context(chunks: List[Dict]) -> str:
     # Group chunks by URL so same-video chunks appear together
     grouped = {}
     for c in chunks:
@@ -111,14 +112,14 @@ def build_context(chunks: list[dict]) -> str:
     return "\n\n---\n\n".join(parts)
 
 
-def build_prompt(question: str, chunks: list[dict]) -> tuple:
+def build_prompt(question: str, chunks: List[Dict]) -> Tuple:
     """Returns (system_prompt, user_message) for use with the LLM."""
     context = build_context(chunks)
     user_message = "TRANSCRIPT EXCERPTS:\n" + context + "\n\nQUESTION: " + question
     return SYSTEM_PROMPT, user_message
 
 
-def chat(question: str, model: str = CLAUDE_MODEL, history: list[dict] = None) -> dict:
+def chat(question: str, model: str = CLAUDE_MODEL, history: Optional[List[Dict]] = None) -> Dict:
     history = (history or [])[-6:]  # cap at last 3 exchanges
     chunks = retrieve(question, history)
 
@@ -161,7 +162,7 @@ def chat(question: str, model: str = CLAUDE_MODEL, history: list[dict] = None) -
     return {"answer": answer, "sources": sources}
 
 
-def stream_chat(question: str, model: str = CLAUDE_MODEL, history: list[dict] = None):
+def stream_chat(question: str, model: str = CLAUDE_MODEL, history: Optional[List[Dict]] = None):
     """Sync generator that yields SSE-formatted strings for streaming responses."""
     history = (history or [])[-6:]  # cap at last 3 exchanges
     chunks = retrieve(question, history)
