@@ -4,7 +4,7 @@
 Update this file whenever you learn something new about the project — a gotcha, a convention, a workflow step that wasn't obvious. The goal is that each session leaves this file slightly more complete than it found it. Commit updates to `CLAUDE.md` alongside the relevant code changes.
 
 ## What this project is
-A RAG-powered chat app over Kingdom Age YouTube video transcripts. Users ask questions; the backend embeds the query, retrieves relevant transcript chunks from Pinecone, and streams an answer via Claude or GPT.
+A RAG-powered chat app over Kingdom Age content — YouTube video transcripts, WordPress posts from kingdomage.org, and (planned) Bible content. Users ask questions; the backend embeds the query, retrieves relevant chunks from Pinecone, and streams an answer via Claude or GPT.
 
 **Live on Render** — pushing to `main` triggers an automatic redeploy.
 
@@ -15,14 +15,16 @@ A RAG-powered chat app over Kingdom Age YouTube video transcripts. Users ask que
 - **Data**: `data/videos.json`, `data/transcripts.json`, `data/embedded.json` (local state, not committed)
 
 ## Dev servers
-```bash
-# Backend (port 8000)
-.venv/bin/uvicorn api.main:app --port 8000
-
-# Frontend dev server (port 5173, proxies /chat/* to backend)
-cd frontend && npm run dev
+Both are configured in `.claude/launch.json` — always use `preview_start` tools, never raw bash:
 ```
-Both are configured in `.claude/launch.json` — use `preview_start` tools.
+preview_start "kingdom-age-chat"      # backend on port 8000
+preview_start "kingdom-age-frontend"  # frontend dev server on port 5173 (proxies /chat/* to backend)
+```
+
+## Key config (api/rag.py)
+- `CLAUDE_MODEL = "claude-opus-4-6"` — default model
+- `POOL_K = 80`, `MIN_SCORE = 0.35`, `CHUNKS_PER_VIDEO = 2`, `MAX_VIDEOS = 20` — diversified retrieval config
+- Streaming via `/chat/stream` SSE endpoint; frontend uses `useKingdomAgeChat` hook
 
 ## Deploy checklist — ALWAYS do all of these before pushing
 1. **Bump the version** in `frontend/src/App.tsx` → `const VERSION` — bump for EVERY change, even text tweaks. NO EXCEPTIONS.
@@ -47,11 +49,6 @@ v2.7.1 — admin page rebuilt in React, shares CSS with main app
 - `ingest/daily_sync.py` — runs all three steps for new-only videos; safe to run repeatedly
 - All scripts are resumable — they check local state files before doing work
 - A scheduled task (`kingdom-age-daily-sync`) runs `daily_sync.py` at 3 AM daily
-
-## Key config (api/rag.py)
-- `CLAUDE_MODEL = "claude-sonnet-4-6"` — default model
-- `POOL_K = 80`, `MIN_SCORE = 0.35`, `CHUNKS_PER_VIDEO = 2`, `MAX_VIDEOS = 20` — diversified retrieval config
-- Streaming via `/chat/stream` SSE endpoint; frontend uses `useKingdomAgeChat` hook
 
 ## Pinecone
 - Index: `kingdom-age`
