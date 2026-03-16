@@ -6,7 +6,7 @@ Update this file whenever you learn something new about the project — a gotcha
 ## What this project is
 A RAG-powered chat app over Kingdom Age YouTube video transcripts. Users ask questions; the backend embeds the query, retrieves relevant transcript chunks from Pinecone, and streams an answer via Claude or GPT.
 
-**Live on Railway** — pushing to `main` triggers an automatic redeploy.
+**Live on Render** — pushing to `main` triggers an automatic redeploy.
 
 ## Architecture
 - **Backend**: FastAPI (`api/main.py`, `api/rag.py`) — serves the frontend static files and exposes `/chat/stream` (SSE streaming) and `/chat` (non-streaming)
@@ -28,7 +28,7 @@ Both are configured in `.claude/launch.json` — use `preview_start` tools.
 1. **Bump the version** in `frontend/src/App.tsx` → `const VERSION` — bump for EVERY change, even text tweaks
 2. **Rebuild the frontend**: `cd frontend && npm run build`
 3. **Stage and commit** including `frontend/dist/`
-4. **Push to main**: `git push origin main` — this triggers Railway redeploy
+4. **Push to main**: `git push origin main` — this triggers Render redeploy
 
 Version scheme: `v{major}.{minor}.{patch}` — minor bump for new features, patch for fixes.
 

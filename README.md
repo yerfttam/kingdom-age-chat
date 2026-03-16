@@ -16,7 +16,7 @@ A NotebookLM-style chat interface for the [Kingdom Age YouTube channel](https://
 - **Embeddings**: OpenAI `text-embedding-3-small`
 - **Vector DB**: Pinecone
 - **LLM**: Claude (Anthropic)
-- **Hosting**: Railway
+- **Hosting**: Render
 
 ## Setup
 
