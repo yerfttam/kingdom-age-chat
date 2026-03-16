@@ -25,12 +25,14 @@ cd frontend && npm run dev
 Both are configured in `.claude/launch.json` — use `preview_start` tools.
 
 ## Deploy checklist — ALWAYS do all of these before pushing
-1. **Bump the version** in `frontend/src/App.tsx` → `const VERSION` — bump for EVERY change, even text tweaks
+1. **Bump the version** in `frontend/src/App.tsx` → `const VERSION` — bump for EVERY change, even text tweaks. NO EXCEPTIONS.
 2. **Rebuild the frontend**: `cd frontend && npm run build`
 3. **Stage and commit** including `frontend/dist/`
 4. **Push to main**: `git push origin main` — this triggers Render redeploy
 
 Version scheme: `v{major}.{minor}.{patch}` — minor bump for new features, patch for fixes.
+
+⚠️ NEVER push without bumping the version first. This is non-negotiable.
 
 ## Git commit convention
 Always lead the commit message with the version number. Example:
