@@ -14,6 +14,15 @@ function makeUserMessage(text: string): Message {
   return { id: Date.now().toString(), role: 'user', parts: [{ type: 'text', text }] }
 }
 
+function getSources(msg: Message): { title: string; url: string }[] {
+  const part = msg.parts.find((p) => p.type === 'data-sources')
+  if (!part || !('data' in part)) return []
+  return ((part as any).data?.nodes ?? []).map((n: any) => ({
+    title: n.metadata?.file_name ?? n.url,
+    url: n.url,
+  }))
+}
+
 /* ─── constants ────────────────────────────────────────────────── */
 
 const MODELS = [
@@ -28,7 +37,7 @@ const MODELS = [
   ]},
 ]
 
-const VERSION = 'v2.3.2'
+const VERSION = 'v2.4.0'
 
 /* ─── App ───────────────────────────────────────────────────────── */
 
@@ -129,6 +138,26 @@ export default function App() {
                 : getText(msg)
               }
             </div>
+            {msg.role === 'assistant' && (() => {
+              const sources = getSources(msg)
+              if (!sources.length) return null
+              return (
+                <details className="self-start">
+                  <summary style={{ fontSize: '0.6rem', color: '#bbb', cursor: 'pointer', listStyle: 'none', userSelect: 'none' }}>
+                    {sources.length} source{sources.length !== 1 ? 's' : ''} ›
+                  </summary>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '4px' }}>
+                    {sources.map((s, i) => (
+                      <a key={i} href={s.url} target="_blank" rel="noopener noreferrer"
+                        style={{ fontSize: '0.6rem', color: '#aaa', textDecoration: 'none', display: 'block', maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                        onMouseEnter={e => (e.currentTarget.style.color = '#8b0000')}
+                        onMouseLeave={e => (e.currentTarget.style.color = '#aaa')}
+                      >{s.title}</a>
+                    ))}
+                  </div>
+                </details>
+              )
+            })()}
           </div>
         ))}
 
