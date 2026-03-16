@@ -50,6 +50,14 @@ Version scheme: `v{major}.{minor}.{patch}` — minor bump for new features, patc
 - ~3,231 videos embedded, ~50k+ vectors
 - Tracks embedded state locally in `data/embedded.json`
 
+## RAG quality improvement roadmap
+Steps 1-3 done (as of v2.1.0). Steps 4-5 still to do:
+1. ✅ Diversified retrieval — 80 chunks, 2/video cap, 20 videos max
+2. ✅ Better system prompt — KA theological context, synthesize across sources
+3. ✅ Score threshold — drop chunks below 0.35 cosine similarity
+4. ⬜ Cohere reranking — re-score the diversified pool, keep top 12-15
+5. ⬜ Re-embed with `text-embedding-3-large` — requires full re-ingest (~2 hrs)
+
 ## Python environment
 - Use `python3` (not `python`) — venv at `.venv/`
 - Python 3.9 — no f-string backslashes, no `match` statements, no `str | None` union syntax
