@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect, type KeyboardEvent } from 'react'
+import { useState, useCallback, useRef, useEffect, useMemo, type KeyboardEvent } from 'react'
 import ReactMarkdown from 'react-markdown'
 import { useKingdomAgeChat } from './hooks/useKingdomAgeChat'
 import type { Message } from '@llamaindex/chat-ui'
@@ -37,19 +37,73 @@ const MODELS = [
   ]},
 ]
 
-const VERSION = 'v2.5.0'
+const VERSION = 'v2.6.0'
+
+const PROMPT_CATEGORIES = [
+  {
+    name: 'Foundations',
+    prompts: [
+      'Who is Jesus?',
+      'What is the meaning of life?',
+      'What is the Kingdom Age?',
+      "What is God's eternal purpose?",
+      "What is God's will for my life?",
+      'How can I come to know God?',
+      'What is a son of God?',
+      'What is True Love?',
+    ],
+  },
+  {
+    name: 'Theology & Teaching',
+    prompts: [
+      'Define Institutional Christianity.',
+      'Is there hierarchy in the Body of Christ?',
+      'What are spiritual gifts for?',
+      'How is God glorified?',
+      'What is the spirit of Sonship?',
+      'What is Baptism?',
+      'What is the Ancient way?',
+      "What is God's Business?",
+      'Why do we observe the Feasts of the Lord?',
+      'Why do they discuss Ancient Eastern philosophy?',
+    ],
+  },
+  {
+    name: 'Community',
+    prompts: [
+      'What makes this community different from other churches?',
+      'Is this a cult?',
+      'How did former generations miss the mark of God\'s purpose?',
+      'How can someone become a part of this community?',
+      'Do these people think they are the only ones to have received revelation from God?',
+      'What would Satan think about this community?',
+      'What do they teach their children about marriage?',
+      'What is the Culture Center?',
+      'What is the prophetic trajectory of this community?',
+    ],
+  },
+]
+
+const ALL_PROMPTS = PROMPT_CATEGORIES.flatMap((c) => c.prompts)
 
 /* ─── App ───────────────────────────────────────────────────────── */
 
 export default function App() {
-  const [model, setModel]   = useState('claude-sonnet-4-6')
-  const [input, setInput]   = useState('')
-  const getModel            = useCallback(() => model, [model])
-  const handler             = useKingdomAgeChat(getModel)
-  const bottomRef           = useRef<HTMLDivElement>(null)
-  const lastMsgRef          = useRef<HTMLDivElement>(null)
-  const textareaRef         = useRef<HTMLTextAreaElement>(null)
-  const busy                = handler.status === 'submitted' || handler.status === 'streaming'
+  const [model, setModel]           = useState('claude-sonnet-4-6')
+  const [input, setInput]           = useState('')
+  const [showAllPrompts, setShowAllPrompts] = useState(false)
+  const getModel                    = useCallback(() => model, [model])
+  const handler                     = useKingdomAgeChat(getModel)
+  const bottomRef                   = useRef<HTMLDivElement>(null)
+  const lastMsgRef                  = useRef<HTMLDivElement>(null)
+  const textareaRef                 = useRef<HTMLTextAreaElement>(null)
+  const busy                        = handler.status === 'submitted' || handler.status === 'streaming'
+
+  /* pick 6 random prompts once on mount */
+  const featuredPrompts = useMemo(() => {
+    const shuffled = [...ALL_PROMPTS].sort(() => Math.random() - 0.5)
+    return shuffled.slice(0, 6)
+  }, [])
 
   /* auto-scroll: new message added → smooth scroll to start of reply or bottom */
   useEffect(() => {
@@ -84,6 +138,12 @@ export default function App() {
     if (textareaRef.current) textareaRef.current.style.height = 'auto'
   }
 
+  const submitPrompt = (text: string) => {
+    if (busy) return
+    handler.sendMessage(makeUserMessage(text))
+    setShowAllPrompts(false)
+  }
+
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); submit() }
   }
@@ -108,19 +168,36 @@ export default function App() {
       {/* ── Sub-header ── */}
       <div className="flex items-center justify-center flex-shrink-0 py-2 px-4 bg-white border-b-2 border-[#e8e8e8]">
         <h1 className="ka-subheader-title">
-          Kingdom Age Video Transcript <span className="text-[#8b0000]">Chat</span>
+          Kingdom Age <span className="text-[#8b0000]">Chat</span>
         </h1>
       </div>
 
       {/* ── Messages ── */}
-      {/* Note: padding is on each row (not the scroll container) to avoid the
-          overflow-y clipping bug where right padding disappears on iOS/Safari */}
       <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden py-5 flex flex-col gap-5">
 
         {handler.messages.length === 0 && (
-          <div className="flex-1 flex flex-col items-center justify-center text-center py-16 gap-2 px-4">
+          <div className="flex-1 flex flex-col items-center justify-center text-center py-10 gap-4 px-4">
             <h2 className="ka-welcome-heading">Ask Anything</h2>
             <p className="text-sm text-[#aaa]">Answers sourced from Kingdom Age teachings</p>
+
+            {/* ── Suggested prompts ── */}
+            <div className="flex flex-wrap justify-center gap-2 mt-2 max-w-lg">
+              {featuredPrompts.map((p) => (
+                <button
+                  key={p}
+                  onClick={() => submitPrompt(p)}
+                  className="text-xs text-[#555] bg-[#f7f7f7] border border-[#e0e0e0] rounded-full px-3 py-1.5 hover:border-[#8b0000] hover:text-[#8b0000] transition-colors text-left"
+                >
+                  {p}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowAllPrompts(true)}
+              className="text-xs text-[#aaa] hover:text-[#8b0000] transition-colors mt-1"
+            >
+              See all questions →
+            </button>
           </div>
         )}
 
@@ -206,6 +283,48 @@ export default function App() {
         </select>
         <span className="text-[0.6rem] text-[#ccc]">{VERSION}</span>
       </div>
+
+      {/* ── All prompts modal ── */}
+      {showAllPrompts && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/40"
+          onClick={() => setShowAllPrompts(false)}
+        >
+          <div
+            className="bg-white w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl max-h-[80vh] flex flex-col shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* modal header */}
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#e8e8e8]">
+              <h2 className="text-sm font-semibold text-[#333]">Suggested Questions</h2>
+              <button
+                onClick={() => setShowAllPrompts(false)}
+                className="text-[#aaa] hover:text-[#333] text-lg leading-none"
+              >×</button>
+            </div>
+
+            {/* modal body */}
+            <div className="overflow-y-auto px-5 py-4 flex flex-col gap-5">
+              {PROMPT_CATEGORIES.map((cat) => (
+                <div key={cat.name}>
+                  <p className="text-[0.65rem] font-semibold uppercase tracking-wider text-[#aaa] mb-2">{cat.name}</p>
+                  <div className="flex flex-col gap-1">
+                    {cat.prompts.map((p) => (
+                      <button
+                        key={p}
+                        onClick={() => submitPrompt(p)}
+                        className="text-left text-sm text-[#444] hover:text-[#8b0000] py-1.5 border-b border-[#f0f0f0] last:border-0 transition-colors"
+                      >
+                        {p}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   )
