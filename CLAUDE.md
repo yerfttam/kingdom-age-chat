@@ -21,6 +21,8 @@ preview_start "kingdom-age-chat"      # backend on port 8000
 preview_start "kingdom-age-frontend"  # frontend dev server on port 5173 (proxies /chat/* to backend)
 ```
 
+⚠️ NEVER guess server names. Always call `preview_list` first to see what's running, and use only the exact names above. Do not invent variants like "Frontend" or "backend".
+
 ## Key config (api/rag.py)
 - `CLAUDE_MODEL = "claude-opus-4-6"` — default model
 - `POOL_K = 80`, `MIN_SCORE = 0.35`, `CHUNKS_PER_VIDEO = 2`, `MAX_VIDEOS = 20` — diversified retrieval config
