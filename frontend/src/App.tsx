@@ -37,7 +37,7 @@ const MODELS = [
   ]},
 ]
 
-const VERSION = 'v2.7.4'
+const VERSION = 'v2.7.5'
 
 const PROMPT_CATEGORIES = [
   {
@@ -46,6 +46,7 @@ const PROMPT_CATEGORIES = [
       'Who is Jesus?',
       'What is the meaning of life?',
       'What is the Kingdom Age?',
+      'What is the difference between the church age and the kingdom age?',
       "What is God's eternal purpose?",
       "What is God's will for my life?",
       'How can I come to know God?',
@@ -54,7 +55,7 @@ const PROMPT_CATEGORIES = [
     ],
   },
   {
-    name: 'Theology & Teaching',
+    name: 'Teaching',
     prompts: [
       'Define Institutional Christianity.',
       'Is there hierarchy in the Body of Christ?',
@@ -66,6 +67,8 @@ const PROMPT_CATEGORIES = [
       "What is God's Business?",
       'Why do we observe the Feasts of the Lord?',
       'Why do they discuss Ancient Eastern philosophy?',
+      'What is the Pattern Life?',
+      "What is God's divine order?",
     ],
   },
   {
@@ -80,6 +83,8 @@ const PROMPT_CATEGORIES = [
       'What do they teach their children about marriage?',
       'What is the Culture Center?',
       'What is the prophetic trajectory of this community?',
+      "What is the culture of God's House?",
+      'Why does this community seem so exclusive?',
     ],
   },
 ]
@@ -331,7 +336,7 @@ export default function App() {
           onClick={() => setShowAllPrompts(false)}
         >
           <div
-            className="bg-white w-full sm:max-w-lg rounded-t-2xl sm:rounded-2xl max-h-[80vh] flex flex-col shadow-xl"
+            className="bg-white w-full sm:max-w-lg max-h-[80vh] flex flex-col shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             {/* modal header */}

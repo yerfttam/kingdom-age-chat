@@ -131,8 +131,9 @@ def chat(question: str, model: str = CLAUDE_MODEL, history: Optional[List[Dict]]
 
     system_prompt, user_message = build_prompt(question, chunks)
 
-    # Build messages: prior turns + current question with RAG context
-    prior = [{"role": m["role"], "content": m["content"]} for m in history]
+    # Build messages: prior user questions only (no assistant responses — avoids hallucination
+    # where model elaborates on claims that are no longer in the current RAG context)
+    prior = [{"role": "user", "content": m["content"]} for m in history if m["role"] == "user"]
     current = {"role": "user", "content": user_message}
 
     if model.startswith("gpt-"):
@@ -183,8 +184,9 @@ def stream_chat(question: str, model: str = CLAUDE_MODEL, history: Optional[List
             seen.add(c["url"])
             sources.append({"title": c["title"], "url": c["url"]})
 
-    # Build messages: prior turns + current question with RAG context
-    prior = [{"role": m["role"], "content": m["content"]} for m in history]
+    # Build messages: prior user questions only (no assistant responses — avoids hallucination
+    # where model elaborates on claims that are no longer in the current RAG context)
+    prior = [{"role": "user", "content": m["content"]} for m in history if m["role"] == "user"]
     current = {"role": "user", "content": user_message}
 
     if model.startswith("gpt-"):
