@@ -19,6 +19,7 @@ anthropic_client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 
 EMBED_MODEL = "text-embedding-3-small"
 CLAUDE_MODEL = "claude-opus-4-6"
+PREPROCESS_MODEL = "gpt-4o-mini"
 
 # Retrieval config
 POOL_K = 80          # chunks fetched from Pinecone before filtering
@@ -62,8 +63,41 @@ def embed_query(text: str) -> list[float]:
     return response.data[0].embedding
 
 
+def preprocess_query(question: str, history: Optional[List[Dict]] = None) -> str:
+    """Use a fast LLM to rewrite ambiguous follow-up questions into standalone retrieval queries.
+    Only fires when there is conversation history. Returns the original question unchanged if
+    no history is present or if the model determines no enrichment is needed."""
+    if not history:
+        return question
+
+    recent = [m for m in history if m["role"] == "user"][-3:]
+    if not recent:
+        return question
+
+    history_text = "\n".join("User: " + m["content"] for m in recent)
+    prompt = (
+        "Given this conversation history:\n"
+        + history_text
+        + "\n\nAnd this new question: \"" + question + "\"\n\n"
+        "Rewrite the new question as a complete, self-contained search query that includes "
+        "any context needed to understand what the user is asking. "
+        "If the question is already fully self-contained, return it unchanged. "
+        "Return only the rewritten query, nothing else."
+    )
+
+    response = openai_client.chat.completions.create(
+        model=PREPROCESS_MODEL,
+        max_tokens=128,
+        temperature=0,
+        messages=[{"role": "user", "content": prompt}]
+    )
+    rewritten = response.choices[0].message.content.strip()
+    return rewritten if rewritten else question
+
+
 def retrieve(question: str, history: Optional[List[Dict]] = None) -> List[Dict]:
-    embedding = embed_query(question)
+    retrieval_query = preprocess_query(question, history)
+    embedding = embed_query(retrieval_query)
     results = index().query(vector=embedding, top_k=POOL_K, include_metadata=True)
 
     # Step 3: filter by score threshold
