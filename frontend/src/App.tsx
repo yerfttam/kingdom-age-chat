@@ -37,7 +37,7 @@ const MODELS = [
   ]},
 ]
 
-const VERSION = 'v2.7.6'
+const VERSION = 'v2.7.7'
 
 const PROMPT_CATEGORIES = [
   {
@@ -340,11 +340,11 @@ export default function App() {
             onClick={(e) => e.stopPropagation()}
           >
             {/* modal header */}
-            <div className="flex items-center justify-between px-5 py-4 border-b border-[#e8e8e8]">
-              <h2 className="text-sm font-semibold text-[#333]">Suggested Questions</h2>
+            <div className="relative flex items-center justify-center px-5 py-4 bg-[#8b0000]">
+              <h2 className="text-sm text-white">Suggested Prompts</h2>
               <button
                 onClick={() => setShowAllPrompts(false)}
-                className="text-[#aaa] hover:text-[#333] text-lg leading-none"
+                className="absolute right-4 text-white/70 hover:text-white text-lg leading-none"
               >×</button>
             </div>
 
