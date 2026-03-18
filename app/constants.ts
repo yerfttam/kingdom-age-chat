@@ -1,7 +1,7 @@
 // API base URL — simulator can reach localhost directly
 // Update PROD_URL to your Render URL before submitting to the App Store
 const PROD_URL = 'https://kingdom-age-chat.onrender.com'
-export const API_BASE = __DEV__ ? 'http://localhost:8000' : PROD_URL
+export const API_BASE = PROD_URL
 
 export const KA_RED = '#8b0000'
 

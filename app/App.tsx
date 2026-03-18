@@ -97,6 +97,7 @@ export default function App() {
           {messages.length === 0 ? (
             /* Welcome screen */
             <View style={styles.welcome}>
+
               <Text style={styles.welcomeHeading}>Ask Anything</Text>
               <Text style={styles.welcomeSub}>
                 Answers sourced from Kingdom Age teachings
@@ -199,6 +200,9 @@ const styles = StyleSheet.create({
     paddingTop: 8,
     paddingBottom: 14,
     alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 10,
   },
   headerTitle: {
     fontSize: 18,
