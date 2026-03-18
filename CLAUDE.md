@@ -11,17 +11,28 @@ A RAG-powered chat app over Kingdom Age content — YouTube video transcripts, W
 ## Architecture
 - **Backend**: FastAPI (`api/main.py`, `api/rag.py`) — serves the frontend static files and exposes `/chat/stream` (SSE streaming) and `/chat` (non-streaming)
 - **Frontend**: React + Vite (`frontend/src/`) — pre-built dist is committed to `frontend/dist/` and served by the backend
+- **App**: React Native + Expo (`app/`) — iOS app, runs via Expo Go in simulator for dev, will be submitted to App Store separately
 - **Ingest**: Python scripts in `ingest/` — fetch videos, transcripts (via Apify), chunk/embed, upsert to Pinecone
 - **Data**: `data/videos.json`, `data/transcripts.json`, `data/embedded.json` (local state, not committed)
 
 ## Dev servers
-Both are configured in `.claude/launch.json` — always use `preview_start` tools, never raw bash:
+All three are configured in `.claude/launch.json` — always use `preview_start` tools, never raw bash:
 ```
 preview_start "kingdom-age-chat"      # backend on port 8000
 preview_start "kingdom-age-frontend"  # frontend dev server on port 5173 (proxies /chat/* to backend)
+preview_start "kingdom-age-app"       # Expo / Metro bundler on port 8081 (opens iOS Simulator)
 ```
 
 ⚠️ NEVER guess server names. Always call `preview_list` first to see what's running, and use only the exact names above. Do not invent variants like "Frontend" or "backend".
+
+## iOS App (app/)
+- React Native 0.83 + Expo 55
+- Streaming uses `XMLHttpRequest` with `onprogress` — NOT fetch + ReadableStream (doesn't work reliably in RN)
+- `punycode` must be installed as an explicit dep (`npm install punycode`) — removed from Node core in v17+
+- `metro.config.js` maps `punycode` to the installed package via `extraNodeModules`
+- In dev, app hits `http://localhost:8000` (simulator can reach Mac localhost directly)
+- In production, app hits `https://kingdom-age-chat.onrender.com` (set via `__DEV__` flag in `constants.ts`)
+- No Apple Developer account needed to run in simulator — required only for real device / App Store
 
 ## Key config (api/rag.py)
 - `CLAUDE_MODEL = "claude-opus-4-6"` — default model
