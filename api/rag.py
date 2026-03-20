@@ -198,12 +198,13 @@ def chat(question: str, model: str = CLAUDE_MODEL, history: Optional[List[Dict]]
         )
         answer = response.content[0].text
 
-    # Deduplicate sources by URL
+    # Deduplicate sources — use title as key for PDF chunks (url is empty)
     seen = set()
     sources = []
     for c in chunks:
-        if c["url"] not in seen:
-            seen.add(c["url"])
+        dedup_key = c["url"] if c["url"] else c["title"]
+        if dedup_key not in seen:
+            seen.add(dedup_key)
             sources.append({"title": c["title"], "url": c["url"]})
 
     return {"answer": answer, "sources": sources}
@@ -232,11 +233,13 @@ def stream_chat(question: str, model: str = CLAUDE_MODEL, history: Optional[List
     _log.warning(user_message[:2000] + ("...[truncated]" if len(user_message) > 2000 else ""))
     _log.warning("=" * 60)
 
+    # Deduplicate sources — use title as key for PDF chunks (url is empty)
     seen = set()
     sources = []
     for c in chunks:
-        if c["url"] not in seen:
-            seen.add(c["url"])
+        dedup_key = c["url"] if c["url"] else c["title"]
+        if dedup_key not in seen:
+            seen.add(dedup_key)
             sources.append({"title": c["title"], "url": c["url"]})
 
     # Build messages: prior user questions only (no assistant responses — avoids hallucination
