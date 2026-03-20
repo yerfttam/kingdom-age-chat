@@ -29,17 +29,17 @@ MAX_VIDEOS = 20      # max distinct videos in final context
 
 SYSTEM_PROMPT = """You are a knowledgeable assistant for Kingdom Age, a Christian ministry that teaches on the transition from the Church Age to the Kingdom Age — a new era in which God is actively establishing His kingdom on earth through His people.
 
-The content comes from hundreds of video teachings covering topics such as: the Kingdom of God, the 7 Spirits of God, spiritual authority, prayer, intercession, end-times theology, the nature of the Church, discipleship, and prophetic ministry.
+The content comes from hundreds of video teachings and written materials covering topics such as: the Kingdom of God, the 7 Spirits of God, spiritual authority, prayer, intercession, end-times theology, the nature of the Church, discipleship, and prophetic ministry. Written sources include the book "The Seed" by Immanuel Sun.
 
 When answering:
 - Synthesize insights from ALL provided sources, not just one or two
-- If multiple videos address the same topic from different angles, weave them together into a comprehensive, unified answer
+- If multiple sources address the same topic from different angles, weave them together into a comprehensive, unified answer
 - Be thorough — these are theological topics that deserve full treatment
-- Stay grounded in what the transcripts actually say; do not add outside theology not present in the sources
+- Stay grounded in what the sources actually say; do not add outside theology not present in the sources
 - If the sources only partially address the question, answer what you can and honestly note what is not covered
 - Do not mention, list, or cite sources in your answer — they are shown separately in the UI
 
-In multi-turn conversations, your prior responses were based on transcript excerpts that are only provided with each new question — they are NOT carried forward. Do not treat specific details from your own prior answers as verified facts. If a follow-up question asks about something you mentioned previously that does not appear in the current TRANSCRIPT EXCERPTS, say clearly that you do not have that material in the current context rather than repeating or elaborating on it."""
+In multi-turn conversations, your prior responses were based on source excerpts that are only provided with each new question — they are NOT carried forward. Do not treat specific details from your own prior answers as verified facts. If a follow-up question asks about something you mentioned previously that does not appear in the current SOURCE EXCERPTS, say clearly that you do not have that material in the current context rather than repeating or elaborating on it."""
 
 
 def get_pinecone_index():
@@ -103,10 +103,17 @@ def retrieve(question: str, history: Optional[List[Dict]] = None) -> List[Dict]:
     # Step 3: filter by score threshold
     matches = [m for m in results["matches"] if m["score"] >= MIN_SCORE]
 
-    # Step 1: diversify — cap at CHUNKS_PER_VIDEO per video, up to MAX_VIDEOS
+    # Step 1: diversify — cap at CHUNKS_PER_VIDEO per source, up to MAX_VIDEOS
+    # For PDF chunks (no video_id, empty url) use the title as the grouping key
     seen_videos = {}
     for m in matches:
-        vid = m["metadata"].get("video_id", m["metadata"]["url"])
+        meta = m["metadata"]
+        if meta.get("video_id"):
+            vid = meta["video_id"]
+        elif meta.get("url"):
+            vid = meta["url"]
+        else:
+            vid = meta.get("title", "unknown")  # group PDFs by chapter title
         if vid not in seen_videos:
             if len(seen_videos) >= MAX_VIDEOS:
                 continue
@@ -131,17 +138,22 @@ def retrieve(question: str, history: Optional[List[Dict]] = None) -> List[Dict]:
 
 
 def build_context(chunks: List[Dict]) -> str:
-    # Group chunks by URL so same-video chunks appear together
+    # Group chunks by URL (videos) or title (PDFs with no URL)
     grouped = {}
     for c in chunks:
-        if c["url"] not in grouped:
-            grouped[c["url"]] = {"title": c["title"], "url": c["url"], "texts": []}
-        grouped[c["url"]]["texts"].append(c["text"])
+        key = c["url"] if c["url"] else c["title"]
+        if key not in grouped:
+            grouped[key] = {"title": c["title"], "url": c["url"], "texts": []}
+        grouped[key]["texts"].append(c["text"])
 
     parts = []
     for g in grouped.values():
         combined = "\n\n".join(g["texts"])
-        parts.append('[Source: "' + g["title"] + '" — ' + g["url"] + ']\n' + combined)
+        if g["url"]:
+            header = '[Source: "' + g["title"] + '" — ' + g["url"] + ']'
+        else:
+            header = '[Source: "' + g["title"] + '"]'
+        parts.append(header + '\n' + combined)
 
     return "\n\n---\n\n".join(parts)
 
@@ -149,7 +161,7 @@ def build_context(chunks: List[Dict]) -> str:
 def build_prompt(question: str, chunks: List[Dict]) -> Tuple:
     """Returns (system_prompt, user_message) for use with the LLM."""
     context = build_context(chunks)
-    user_message = "TRANSCRIPT EXCERPTS:\n" + context + "\n\nQUESTION: " + question
+    user_message = "SOURCE EXCERPTS:\n" + context + "\n\nQUESTION: " + question
     return SYSTEM_PROMPT, user_message
 
 
@@ -159,7 +171,7 @@ def chat(question: str, model: str = CLAUDE_MODEL, history: Optional[List[Dict]]
 
     if not chunks:
         return {
-            "answer": "I couldn't find anything relevant in the Kingdom Age videos for that question.",
+            "answer": "I couldn't find anything relevant in the Kingdom Age library for that question.",
             "sources": []
         }
 
@@ -203,13 +215,22 @@ def stream_chat(question: str, model: str = CLAUDE_MODEL, history: Optional[List
     chunks = retrieve(question, history)
 
     if not chunks:
-        no_results = "I couldn't find anything relevant in the Kingdom Age videos for that question."
+        no_results = "I couldn't find anything relevant in the Kingdom Age library for that question."
         yield "data: " + json.dumps({"type": "text", "delta": no_results}) + "\n\n"
         yield "data: " + json.dumps({"type": "sources", "sources": []}) + "\n\n"
         yield 'data: {"type": "done"}\n\n'
         return
 
     system_prompt, user_message = build_prompt(question, chunks)
+
+    # DEBUG — remove before shipping
+    import logging as _log
+    _log.warning("=" * 60)
+    _log.warning(f"MODEL: {model}")
+    _log.warning(f"CHUNKS: {len(chunks)} | SYSTEM: {len(system_prompt.split())} words | USER MSG: {len(user_message.split())} words")
+    _log.warning("--- USER MESSAGE (first 2000 chars) ---")
+    _log.warning(user_message[:2000] + ("...[truncated]" if len(user_message) > 2000 else ""))
+    _log.warning("=" * 60)
 
     seen = set()
     sources = []
