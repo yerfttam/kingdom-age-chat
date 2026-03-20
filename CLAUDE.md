@@ -4,7 +4,7 @@
 Update this file whenever you learn something new about the project — a gotcha, a convention, a workflow step that wasn't obvious. The goal is that each session leaves this file slightly more complete than it found it. Commit updates to `CLAUDE.md` alongside the relevant code changes.
 
 ## What this project is
-A RAG-powered chat app over Kingdom Age content — YouTube video transcripts, WordPress posts from kingdomage.org, and (planned) Bible content. Users ask questions; the backend embeds the query, retrieves relevant chunks from Pinecone, and streams an answer via Claude or GPT.
+A RAG-powered chat app over Kingdom Age content — YouTube video transcripts, WordPress posts from kingdomage.org, and the book *The Seed* by Immanuel Sun. Users ask questions; the backend embeds the query, retrieves relevant chunks from Pinecone, and streams an answer via Claude or GPT.
 
 **Live on Render** — pushing to `main` triggers an automatic redeploy.
 
@@ -25,8 +25,10 @@ preview_start "kingdom-age-app"       # Expo / Metro bundler on port 8081 (opens
 
 ⚠️ NEVER guess server names. Always call `preview_list` first to see what's running, and use only the exact names above. Do not invent variants like "Frontend" or "backend".
 
+⚠️ iOS app changes CANNOT be verified via preview tools — the simulator UI is not browser-accessible. `preview_screenshot` on port 8081 only returns the Metro bundler JSON manifest. Visual verification of iOS changes requires the user to share a simulator/device screenshot.
+
 ## iOS App (app/)
-- React Native 0.83 + Expo 55
+- React Native 0.83 + **Expo SDK 54** (downgraded from 55 for Expo Go compatibility — Expo Go on the App Store currently supports SDK 54)
 - Streaming uses `XMLHttpRequest` with `onprogress` — NOT fetch + ReadableStream (doesn't work reliably in RN)
 - `punycode` must be installed as an explicit dep (`npm install punycode`) — removed from Node core in v17+
 - `metro.config.js` maps `punycode` to the installed package via `extraNodeModules`
@@ -34,10 +36,20 @@ preview_start "kingdom-age-app"       # Expo / Metro bundler on port 8081 (opens
 - In production, app hits `https://kingdom-age-chat.onrender.com` (set via `__DEV__` flag in `constants.ts`)
 - No Apple Developer account needed to run in simulator — required only for real device / App Store
 
+### Running Expo (important gotchas)
+- ⚠️ NEVER use `npx expo start` — npx grabs the latest Expo (SDK 55) from the registry, not the local SDK 54
+- Always use the local binary: `./node_modules/.bin/expo start`
+- For tunnel mode (to share with others off local network):
+  1. `npm install @expo/ngrok@^4.0.0` (one-time)
+  2. `./node_modules/.bin/expo start --tunnel`
+  3. Mac must stay awake/running for tunnel to work
+- For real device testing without tunnel: phone and Mac must be on the same Wi-Fi
+
 ## Key config (api/rag.py)
-- `CLAUDE_MODEL = "claude-opus-4-6"` — default model
+- `CLAUDE_MODEL = "claude-opus-4-6"` — default model (expensive; consider Sonnet for cost savings)
 - `POOL_K = 80`, `MIN_SCORE = 0.35`, `CHUNKS_PER_VIDEO = 2`, `MAX_VIDEOS = 20` — diversified retrieval config
 - Streaming via `/chat/stream` SSE endpoint; frontend uses `useKingdomAgeChat` hook
+- ⚠️ There is a DEBUG logging block in `stream_chat` — remove before shipping to production
 
 ## Deploy checklist — ALWAYS do all of these before pushing
 1. **Bump the version** in `frontend/src/App.tsx` → `const VERSION` — bump for EVERY change, even text tweaks. NO EXCEPTIONS.
@@ -59,14 +71,31 @@ v2.7.1 — admin page rebuilt in React, shares CSS with main app
 - `ingest/fetch_videos.py` — scrape video list from YouTube channel
 - `ingest/fetch_transcripts.py` — fetch transcripts via Apify API
 - `ingest/chunk_embed.py` — chunk (500 words, 50 overlap), embed (OpenAI `text-embedding-3-small`), upsert to Pinecone
+- `ingest/embed_pdf.py` — embed a PDF book into Pinecone (see PDF Ingest section below)
 - `ingest/daily_sync.py` — runs all three steps for new-only videos; safe to run repeatedly
 - All scripts are resumable — they check local state files before doing work
 - A scheduled task (`kingdom-age-daily-sync`) runs `daily_sync.py` at 3 AM daily
 
+## PDF Ingest
+- Script: `ingest/embed_pdf.py`
+- Dependency: `pypdf` (install via `.venv/bin/pip install pypdf`)
+- Run: `.venv/bin/python3 ingest/embed_pdf.py /path/to/file.pdf`
+- Re-embed (wipes old vectors first): `.venv/bin/python3 ingest/embed_pdf.py /path/to/file.pdf --delete`
+- PDF chunks use `source: "pdf"`, `url: ""`, and `title: "{Book}, Chapter {N}"` in metadata
+- ⚠️ Always use `.venv/bin/python3` not `python3` — pypdf is only in the venv
+
+### The Seed
+- File: `The Seed/the-seed_print_final_10-22-2022.pdf` (340 pages, 12 chapters)
+- Author: Immanuel Sun, Published by New Streams Studio
+- Chapter page ranges are hardcoded in `embed_pdf.py` — chapters 5 and 12 have image-only intro pages (chapter numbers not extractable as text)
+- 159 chunks currently in Pinecone with IDs `seed_ch{N}_{idx}`
+- NOT linkable as a source — cite as "The Seed, Chapter N" only
+
 ## Pinecone
 - Index: `kingdom-age`
-- ~3,231 videos embedded, ~50k+ vectors
-- Tracks embedded state locally in `data/embedded.json`
+- ~3,231 videos embedded + 159 PDF chunks (~50k+ vectors total)
+- Tracks video embedded state locally in `data/embedded.json`
+- PDF chunks identified by `source: "pdf"` metadata filter
 
 ## RAG quality improvement roadmap
 Steps 1-3 done (as of v2.1.0). Steps 4-5 still to do:
@@ -75,6 +104,12 @@ Steps 1-3 done (as of v2.1.0). Steps 4-5 still to do:
 3. ✅ Score threshold — drop chunks below 0.35 cosine similarity
 4. ⬜ Cohere reranking — re-score the diversified pool, keep top 12-15
 5. ⬜ Re-embed with `text-embedding-3-large` — requires full re-ingest (~2 hrs)
+
+## Anthropic API key gotcha
+- Running out of credits **suspends the API key** — adding credits does NOT reactivate the old key
+- When this happens: create a new key in the Anthropic console, update `ANTHROPIC_API_KEY` in Render env vars (triggers auto-redeploy)
+- Prevention: set up auto-reload in the Anthropic billing console (e.g., reload when balance < $10)
+- Cost profile: Opus 4.6 runs ~$15/MTok input + $75/MTok output; input dominates (13:1 ratio vs output)
 
 ## Database
 - PostgreSQL on Render (`ka_chat_db`)
@@ -85,4 +120,5 @@ Steps 1-3 done (as of v2.1.0). Steps 4-5 still to do:
 
 ## Python environment
 - Use `python3` (not `python`) — venv at `.venv/`
+- Always run scripts as `.venv/bin/python3 ingest/script.py` to ensure venv packages are used
 - Python 3.9 — no f-string backslashes, no `match` statements, no `str | None` union syntax
