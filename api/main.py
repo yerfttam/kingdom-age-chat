@@ -131,13 +131,13 @@ async def health():
     return {"status": "ok"}
 
 
-@app.get("/admin")
-async def admin_page():
+@app.get("/report")
+async def report_page():
     return FileResponse(os.path.join(FRONTEND_DIST, 'index.html'))
 
 
-@app.get("/admin/data")
-async def admin_data():
+@app.get("/report/data")
+async def report_data():
     from db import get_conn
     conn = get_conn()
     rows = []
@@ -165,7 +165,7 @@ async def admin_data():
                     for r in raw
                 ]
         except Exception as e:
-            logger.error(f"Admin query failed: {e}")
+            logger.error(f"Report query failed: {e}")
     return {"rows": rows, "total": total}
 
 
