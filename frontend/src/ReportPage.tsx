@@ -13,7 +13,7 @@ interface AdminData {
   total: number
 }
 
-export default function AdminPage() {
+export default function ReportPage() {
   const [data, setData] = useState<AdminData | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -35,7 +35,7 @@ export default function AdminPage() {
   }, [])
 
   useEffect(() => {
-    fetch('/admin/data')
+    fetch('/report/data')
       .then(r => r.json())
       .then(setData)
       .catch(() => setError('Failed to load query data.'))

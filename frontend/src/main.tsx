@@ -2,12 +2,12 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
-import AdminPage from './AdminPage.tsx'
+import ReportPage from './ReportPage.tsx'
 
-const isAdmin = window.location.pathname.startsWith('/admin')
+const isReport = window.location.pathname.startsWith('/report')
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    {isAdmin ? <AdminPage /> : <App />}
+    {isReport ? <ReportPage /> : <App />}
   </StrictMode>,
 )
