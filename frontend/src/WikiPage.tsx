@@ -112,6 +112,13 @@ export default function WikiPage() {
   const searchRef = useRef<HTMLInputElement>(null)
   const topRef    = useRef<HTMLDivElement>(null)
 
+  /* Set page title */
+  useEffect(() => {
+    const prev = document.title
+    document.title = 'Kingdom Age Wiki'
+    return () => { document.title = prev }
+  }, [])
+
   /* Unlock scrolling — the global CSS locks height + overflow for the chat layout */
   useEffect(() => {
     const root = document.getElementById('root')
@@ -225,23 +232,24 @@ export default function WikiPage() {
       </div>
 
       {/* ── Sub-header ── */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px', background: '#fff', borderBottom: '2px solid #e8e8e8', flexShrink: 0 }}>
+      <div style={{ position: 'relative', display: 'flex', alignItems: 'center', padding: '8px 16px', background: '#fff', borderBottom: '2px solid #e8e8e8', flexShrink: 0 }}>
+        {/* Back button — left-anchored */}
         {isPageView && (
           <button
             onClick={goIndex}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8b0000', fontFamily: 'Barlow, Helvetica, Arial, sans-serif', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', flexShrink: 0 }}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8b0000', fontFamily: 'Barlow, Helvetica, Arial, sans-serif', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', flexShrink: 0, zIndex: 1 }}
           >
             ← Wiki
           </button>
         )}
-        <h1 className="ka-subheader-title" style={{ flex: 1, textAlign: isPageView ? 'left' : 'center' }}>
+        {/* Title — always centered */}
+        <h1 className="ka-subheader-title" style={{ position: 'absolute', left: 0, right: 0, textAlign: 'center', pointerEvents: 'none' }}>
           Kingdom Age <span style={{ color: '#8b0000' }}>Wiki</span>
         </h1>
-        {!isPageView && (
-          <span style={{ fontSize: '0.62rem', color: '#ccc', flexShrink: 0 }}>
-            {total > 0 ? `${total} pages` : ''}
-          </span>
-        )}
+        {/* Page count — right-anchored spacer */}
+        <span style={{ marginLeft: 'auto', fontSize: '0.62rem', color: '#ccc', flexShrink: 0, zIndex: 1 }}>
+          {!isPageView && total > 0 ? `${total} pages` : ''}
+        </span>
       </div>
 
       {/* ── Body ── */}
