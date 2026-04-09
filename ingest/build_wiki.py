@@ -454,15 +454,13 @@ def parse_json_array(text):
 # Source loaders
 # ---------------------------------------------------------------------------
 
-def load_video_sources(limit=None):
+def load_video_sources():
     """Load transcripts from data/transcripts.json."""
     if not os.path.exists(TRANSCRIPTS_FILE):
         print(f"Transcripts file not found: {TRANSCRIPTS_FILE}")
         return []
     with open(TRANSCRIPTS_FILE) as f:
         transcripts = json.load(f)
-    if limit:
-        transcripts = transcripts[:limit]
     return [
         {
             "source_id":   t['video_id'],
@@ -476,7 +474,7 @@ def load_video_sources(limit=None):
     ]
 
 
-def load_pdf_sources(pdf_path):
+def load_pdf_sources(pdf_path=None):
     """Extract chapter texts from The Seed PDF."""
     try:
         from pypdf import PdfReader
@@ -512,7 +510,7 @@ def load_pdf_sources(pdf_path):
     return sources
 
 
-def load_wordpress_sources(csv_path, limit=None):
+def load_wordpress_sources(csv_path):
     """Load posts from a WordPress CSV export."""
     if not csv_path or not os.path.exists(csv_path):
         print(f"WordPress CSV not found: {csv_path}")
@@ -543,8 +541,6 @@ def load_wordpress_sources(csv_path, limit=None):
                 "text":        cleaned,
             })
 
-    if limit:
-        posts = posts[:limit]
     return posts
 
 
@@ -568,11 +564,14 @@ def _clean_html(raw):
 # First pass — ingest
 # ---------------------------------------------------------------------------
 
-def run_ingest(sources, state, state_key, dry_run=False):
+def run_ingest(sources, state, state_key, dry_run=False, limit=None):
     client  = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
     schema  = load_schema()
     done    = set(state.get(state_key, []))
     pending = [s for s in sources if s['source_id'] not in done]
+
+    if limit:
+        pending = pending[:limit]
 
     print(f"\n{len(pending)} {state_key} to process ({len(done)} already done).")
 
@@ -727,21 +726,17 @@ def main():
     state = load_state()
 
     if args.source in ('videos', 'all'):
-        limit = args.limit if args.source == 'videos' else None
-        sources = load_video_sources(limit=limit)
-        run_ingest(sources, state, 'videos', dry_run=args.dry_run)
+        sources = load_video_sources()
+        run_ingest(sources, state, 'videos', dry_run=args.dry_run, limit=args.limit)
 
     if args.source in ('pdf', 'all'):
         pdf_path = os.path.join(os.path.dirname(__file__), '..', args.pdf)
-        sources  = load_pdf_sources(pdf_path)
-        if args.limit and args.source == 'pdf':
-            sources = sources[:args.limit]
-        run_ingest(sources, state, 'pdf_chapters', dry_run=args.dry_run)
+        sources  = load_pdf_sources()
+        run_ingest(sources, state, 'pdf_chapters', dry_run=args.dry_run, limit=args.limit)
 
     if args.source in ('wordpress', 'all'):
-        limit   = args.limit if args.source == 'wordpress' else None
-        sources = load_wordpress_sources(args.csv, limit=limit)
-        run_ingest(sources, state, 'wordpress_posts', dry_run=args.dry_run)
+        sources = load_wordpress_sources(args.csv)
+        run_ingest(sources, state, 'wordpress_posts', dry_run=args.dry_run, limit=args.limit)
 
     print("\nDone.")
 
