@@ -83,9 +83,11 @@ function TagList({ tags }: { tags: string[] }) {
   )
 }
 
-/* Convert [[slug]] syntax to a path the link renderer can intercept without sanitization */
+/* Convert [[slug]] and [[slug|display text]] to interceptable paths */
 function processWikiLinks(body: string): string {
-  return body.replace(/\[\[([^\]]+)\]\]/g, (_m, slug) => `[${slug}](/wiki-internal/${slug})`)
+  return body.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (_m, slug, label) =>
+    `[${label ?? slug}](/wiki-internal/${slug.trim()})`
+  )
 }
 
 /* Convert "video:{id} — {title}" source citations into clickable YouTube links */
