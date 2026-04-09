@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
+import { VERSION } from './version'
 
 /* ─── types ──────────────────────────────────────────────────────── */
 
@@ -458,7 +459,7 @@ export default function WikiPage() {
 
       {/* ── Footer ── */}
       <div style={{ borderTop: '1px solid #e8e8e8', background: '#fff', padding: '10px 16px', display: 'flex', justifyContent: 'center' }}>
-        <span style={{ fontSize: '0.6rem', color: '#ccc', fontFamily: 'Barlow, Helvetica, Arial, sans-serif' }}>v2.9.2</span>
+        <span style={{ fontSize: '0.6rem', color: '#ccc', fontFamily: 'Barlow, Helvetica, Arial, sans-serif' }}>{VERSION}</span>
       </div>
     </div>
   )

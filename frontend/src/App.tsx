@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect, useMemo, type KeyboardEvent }
 import ReactMarkdown from 'react-markdown'
 import { useKingdomAgeChat } from './hooks/useKingdomAgeChat'
 import type { Message } from '@llamaindex/chat-ui'
+import { VERSION } from './version'
 
 /* ─── helpers ─────────────────────────────────────────────────── */
 
@@ -38,7 +39,6 @@ const MODELS = [
 ]
 
 
-const VERSION = 'v2.9.4'
 
 const PROMPT_CATEGORIES = [
   {
