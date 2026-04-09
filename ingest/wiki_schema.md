@@ -11,11 +11,11 @@ Every wiki page belongs to exactly one of these categories:
 | Category | What it covers |
 |---|---|
 | `Concepts` | Core theological ideas central to Kingdom Age teaching (e.g., "The Kingdom of God", "The Seed", "Sonship") |
-| `Teachings` | Specific doctrinal positions or emphases Immanuel Sun returns to repeatedly (e.g., "Living by Christ", "Organic Church Life") |
-| `Biblical Texts` | Key passages of Scripture and how Immanuel Sun interprets and applies them |
+| `Teachings` | Specific doctrinal positions or emphases that recur across Kingdom Age teaching (e.g., "Living by Christ", "Organic Church Life") |
+| `Biblical Texts` | Key passages of Scripture and how they are interpreted and applied in Kingdom Age teaching |
 | `Series` | A named video or teaching series, summarizing its arc and key themes |
 | `Entities` | People, ministries, or movements referenced in the content (e.g., "Immanuel Sun", "Kingdom Age Ministry") |
-| `Prophetic` | Visions, prophetic words, and revelatory experiences shared by Immanuel Sun or others in the content |
+| `Prophetic` | Visions, prophetic words, and revelatory experiences shared by teachers or members in the content |
 
 ---
 
@@ -26,14 +26,14 @@ Every page must follow this exact markdown structure:
 ```markdown
 ## Summary
 
-2–3 sentences. What is this concept/teaching/entity? State it plainly and precisely as Immanuel Sun would understand it — not a generic definition.
+2–3 sentences. What is this concept/teaching/entity? State it plainly and precisely as Kingdom Age would understand it — not a generic evangelical definition.
 
 ## Key Points
 
 - Bullet list of the most important things taught about this topic across all sources.
 - Each bullet is a distinct, concrete point — not a restatement of the summary.
 - Aim for 4–8 bullets. Merge redundant points across sources rather than listing them separately.
-- Quote Immanuel Sun directly when he has a particularly sharp or distinctive way of phrasing something.
+- Quote a teacher directly when they have a particularly sharp or distinctive way of phrasing something. Attribute the quote by name when the speaker is identifiable.
 
 ## Cross-References
 
@@ -82,12 +82,12 @@ Tags are used for filtering and discovery. Each page should have 3–8 tags chos
 
 1. **One page per concept** — do not create separate pages for the same concept covered in multiple sources. Update the existing page instead.
 2. **Synthesize, don't transcribe** — wiki pages are synthesized knowledge, not sermon notes. Remove filler, repetition, and tangents.
-3. **Immanuel Sun's voice** — preserve his distinctive theological framing. Kingdom Age teaching has specific meanings for terms like "seed", "kingdom", "organic", and "life". Do not flatten these into generic evangelical meanings.
+3. **Kingdom Age voice** — preserve the distinctive theological framing of Kingdom Age teaching. Terms like "seed", "kingdom", "organic", and "life" carry specific meanings here. Do not flatten these into generic evangelical meanings. Immanuel Sun was a foundational teacher who passed away; his teachings are still central, but Kingdom Age has multiple teachers whose voices belong in the wiki equally.
 4. **Cross-references over repetition** — if a concept is explained on another page, reference it rather than re-explaining it.
 5. **Source every claim** — every Key Point should be traceable to at least one source in the Sources section.
 6. **Minimum bar** — do not create a page unless there is enough content for a meaningful Summary + at least 3 Key Points. Thin content should be merged into a broader page.
 7. **Series pages** — summarize the arc of the series, not individual episodes. Individual episode insights belong on Concept or Teaching pages.
-8. **Prophetic pages** — each vision or prophetic word gets its own page. Preserve the narrative of the vision as Immanuel Sun told it, then add a "Significance" section explaining how he interpreted it theologically. Do not merge multiple visions into one page.
+8. **Prophetic pages** — each vision or prophetic word gets its own page. Preserve the narrative of the vision as the speaker told it, then add a "Significance" section explaining the theological interpretation given. Identify the speaker by name if known. Do not merge multiple visions into one page.
 
 ---
 
@@ -107,7 +107,7 @@ sources:
 
 ## Summary
 
-"The Seed" refers to the divine life of God implanted in the human spirit at regeneration — specifically, Christ Himself as the life-seed (Col. 1:27). Immanuel Sun draws this primarily from the Parable of the Sower and John 12:24, treating the seed not as a metaphor for the gospel message but as the very person of Christ taking root in man.
+"The Seed" refers to the divine life of God implanted in the human spirit at regeneration — specifically, Christ Himself as the life-seed (Col. 1:27). Kingdom Age teaching draws this primarily from the Parable of the Sower and John 12:24, treating the seed not as a metaphor for the gospel message but as the very person of Christ taking root in man.
 
 ## Key Points
 

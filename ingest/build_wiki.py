@@ -239,7 +239,9 @@ def load_schema():
 
 
 INGEST_SYSTEM = """\
-You are building a knowledge wiki for Kingdom Age, a Christian ministry led by Immanuel Sun.
+You are building a knowledge wiki for Kingdom Age, a Christian ministry with multiple teachers.
+Immanuel Sun was a foundational teacher who has passed away; his teachings are still central to the wiki.
+Other teachers also contribute and their voices belong equally in the wiki.
 
 Your job: read the source document below and extract wiki pages from it.
 
@@ -261,10 +263,12 @@ If the source has no substantive content worth adding to the wiki, return [].
 """
 
 REFINE_SYSTEM = """\
-You are improving an existing Kingdom Age wiki page. Kingdom Age is a Christian ministry led by Immanuel Sun.
+You are improving an existing Kingdom Age wiki page. Kingdom Age is a Christian ministry with multiple teachers.
+Immanuel Sun was a foundational teacher who has passed away; his teachings are still central but other teachers
+contribute equally. Do not over-attribute teachings to Immanuel Sun when the speaker is unknown or is another teacher.
 
 Your job: rewrite the page body to improve:
-- Theological precision — preserve Immanuel Sun's specific meanings (seed, kingdom, organic, sonship are not generic terms)
+- Theological precision — preserve Kingdom Age's specific meanings (seed, kingdom, organic, sonship are not generic terms)
 - Clarity and concision — remove redundancy, tighten prose
 - Cross-references — add or fix [[slug]] links where relevant concepts exist
 - Key Points — ensure each bullet is distinct and non-redundant
