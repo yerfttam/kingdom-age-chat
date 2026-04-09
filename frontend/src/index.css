@@ -105,7 +105,7 @@ body {
 .ka-markdown p:last-child { margin-bottom: 0; }
 
 /* Wiki article body — more breathing room between paragraphs */
-.wiki-body .ka-markdown p            { margin-bottom: 1.4em; }
+.wiki-body .ka-markdown p            { margin-bottom: 2em; }
 .wiki-body .ka-markdown p:last-child { margin-bottom: 0; }
 .ka-markdown strong       { font-weight: 700; color: #1a1a1a; }
 .ka-markdown em           { font-style: italic; }
