@@ -273,10 +273,14 @@ Follow the schema exactly:
 
 {schema}
 
-IMPORTANT — Cross-references:
-The following slugs are the ONLY valid wiki pages that currently exist. In the Cross-References section,
-you may ONLY use [[slug]] links from this list. Do not invent slugs that are not listed here.
-If no valid cross-reference exists for a concept, omit it rather than linking to a non-existent page.
+IMPORTANT — Existing pages (study this list before creating anything):
+The following slugs are ALL wiki pages that currently exist.
+
+- Cross-references: ONLY use [[slug]] links from this list. Do not invent slugs.
+- Series pages: if a series page for this content already exists in the list (under ANY slug
+  variation), output THAT existing slug — do NOT create a new series page. The system will
+  automatically deepen it with this new source content.
+- Concepts/Teachings: same rule — reuse the existing slug if the concept is already covered.
 
 {slug_list}
 

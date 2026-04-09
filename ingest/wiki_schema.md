@@ -86,7 +86,7 @@ Tags are used for filtering and discovery. Each page should have 3–8 tags chos
 4. **Cross-references over repetition** — if a concept is explained on another page, reference it rather than re-explaining it.
 5. **Source every claim** — every Key Point should be traceable to at least one source in the Sources section.
 6. **Minimum bar** — do not create a page unless there is enough content for a meaningful Summary + at least 3 Key Points. Thin content should be merged into a broader page.
-7. **Series pages** — summarize the arc of the series, not individual episodes. Individual episode insights belong on Concept or Teaching pages.
+7. **Series pages** — summarize the arc of the series, not individual episodes. Individual episode insights belong on Concept or Teaching pages. IMPORTANT: before creating a new Series page, check the existing slug list carefully — if a series page for this content already exists under any slug variation, use that slug instead of creating a new one. Do not create multiple series pages for the same series.
 8. **Prophetic pages** — each vision or prophetic word gets its own page. Preserve the narrative of the vision as the speaker told it, then add a "Significance" section explaining the theological interpretation given. Identify the speaker by name if known. Do not merge multiple visions into one page.
 
 ---
