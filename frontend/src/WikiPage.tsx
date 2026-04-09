@@ -445,14 +445,9 @@ export default function WikiPage() {
         )}
       </div>
 
-      {/* ── Footer nav ── */}
+      {/* ── Footer ── */}
       <div style={{ borderTop: '1px solid #e8e8e8', background: '#fff', padding: '10px 16px', display: 'flex', justifyContent: 'center' }}>
-        <a href="/" style={{ fontSize: '0.7rem', color: '#aaa', textDecoration: 'none', fontFamily: 'Barlow, Helvetica, Arial, sans-serif', letterSpacing: '0.05em', textTransform: 'uppercase' }}
-          onMouseEnter={e => (e.currentTarget.style.color = '#8b0000')}
-          onMouseLeave={e => (e.currentTarget.style.color = '#aaa')}
-        >
-          ← Back to Chat
-        </a>
+        <span style={{ fontSize: '0.6rem', color: '#ccc', fontFamily: 'Barlow, Helvetica, Arial, sans-serif' }}>v2.9.2</span>
       </div>
     </div>
   )

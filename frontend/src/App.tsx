@@ -38,7 +38,7 @@ const MODELS = [
 ]
 
 
-const VERSION = 'v2.9.1'
+const VERSION = 'v2.9.2'
 
 const PROMPT_CATEGORIES = [
   {
