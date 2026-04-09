@@ -474,7 +474,7 @@ export default function WikiPage() {
                 <div style={{ height: 1, background: '#e8e8e8', marginBottom: 20 }} />
 
                 {/* Body */}
-                <div className="ka-markdown" style={{
+                <div className="wiki-body ka-markdown" style={{
                   fontSize: '0.95rem',
                   lineHeight: 1.75,
                   color: '#2c2c2c',
