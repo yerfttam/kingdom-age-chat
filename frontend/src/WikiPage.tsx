@@ -83,9 +83,9 @@ function TagList({ tags }: { tags: string[] }) {
   )
 }
 
-/* Convert [[slug]] syntax to a special URL so the link renderer can intercept it */
+/* Convert [[slug]] syntax to a path the link renderer can intercept without sanitization */
 function processWikiLinks(body: string): string {
-  return body.replace(/\[\[([^\]]+)\]\]/g, (_m, slug) => `[${slug}](wiki-internal:${slug})`)
+  return body.replace(/\[\[([^\]]+)\]\]/g, (_m, slug) => `[${slug}](/wiki-internal/${slug})`)
 }
 
 /* Convert "video:{id} — {title}" source citations into clickable YouTube links */
@@ -197,11 +197,11 @@ export default function WikiPage() {
 
   /* custom link renderer — intercepts wiki-internal: links */
   const linkRenderer = useCallback(({ href, children }: any) => {
-    if (href?.startsWith('wiki-internal:')) {
-      const slug = href.replace('wiki-internal:', '')
+    if (href?.startsWith('/wiki-internal/')) {
+      const slug = href.replace('/wiki-internal/', '')
       return (
         <button
-          onClick={() => openPage(slug)}
+          onClick={e => { e.preventDefault(); openPage(slug) }}
           style={{ color: '#8b0000', textDecoration: 'underline', background: 'none', border: 'none', cursor: 'pointer', padding: 0, font: 'inherit' }}
         >
           {children}
