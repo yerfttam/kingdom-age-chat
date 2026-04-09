@@ -6,6 +6,8 @@ Update this file whenever you learn something new about the project — a gotcha
 ## What this project is
 A RAG-powered chat app over Kingdom Age content — YouTube video transcripts, WordPress posts from kingdomage.org, and the book *The Seed* by Immanuel Sun. Users ask questions; the backend embeds the query, retrieves relevant chunks from Pinecone, and streams an answer via Claude or GPT.
 
+There is also a **Wiki** (Karpathy LLM Wiki pattern) — a persistent, LLM-synthesized knowledge base stored in Postgres. Pinecone remains the default; wiki mode is opt-in via `mode=wiki`. The wiki is browsable at `/wiki`.
+
 **Live on Render** — pushing to `main` triggers an automatic redeploy.
 
 ## Architecture
@@ -13,7 +15,9 @@ A RAG-powered chat app over Kingdom Age content — YouTube video transcripts, W
 - **Frontend**: React + Vite (`frontend/src/`) — pre-built dist is committed to `frontend/dist/` and served by the backend
 - **App**: React Native + Expo (`app/`) — iOS app, runs via Expo Go in simulator for dev, will be submitted to App Store separately
 - **Ingest**: Python scripts in `ingest/` — fetch videos, transcripts (via Apify), chunk/embed, upsert to Pinecone
+- **Wiki ingest**: `ingest/build_wiki.py` — builds/refines wiki pages from transcripts + PDF + WordPress
 - **Data**: `data/videos.json`, `data/transcripts.json`, `data/embedded.json` (local state, not committed)
+- **Wiki state**: `data/wiki_ingest.json` — tracks which sources have been ingested (resumable)
 
 ## Dev servers
 All three are configured in `.claude/launch.json` — always use `preview_start` tools, never raw bash:
@@ -75,6 +79,49 @@ v2.7.1 — admin page rebuilt in React, shares CSS with main app
 - `ingest/daily_sync.py` — runs all three steps for new-only videos; safe to run repeatedly
 - All scripts are resumable — they check local state files before doing work
 - A scheduled task (`kingdom-age-daily-sync`) runs `daily_sync.py` at 3 AM daily
+
+## Wiki
+The wiki is a Karpathy-style LLM knowledge base: instead of raw chunk retrieval, the LLM synthesizes content into durable, human-readable pages stored in Postgres.
+
+### Schema (`wiki_pages` table)
+- `slug` (UNIQUE), `title`, `category`, `body` (markdown), `sources` (JSONB), `tags` (text[]), `search_vector` (TSVECTOR), timestamps
+- Auto-updated `search_vector` via Postgres trigger on insert/update
+- GIN index on `search_vector` for full-text search
+
+### Categories
+`Concepts` | `Teachings` | `Biblical Texts` | `Series` | `Entities` | `Prophetic`
+
+### Wiki ingest script
+```
+.venv/bin/python3 ingest/build_wiki.py [flags]
+```
+- `--source [videos|pdf|wordpress|all]` — which sources to process (default: all)
+- `--limit N` — process only N sources (useful for testing)
+- `--dry-run` — print LLM output without writing to DB
+- `--refine` — **Opus refine pass**: re-reads every existing page and improves it (better synthesis, sharper language). Does NOT re-ingest sources.
+- Models: `INGEST_MODEL = "claude-sonnet-4-6"` (first pass), `REFINE_MODEL = "claude-opus-4-6"` (refine pass)
+- State file: `data/wiki_ingest.json` — tracks processed source IDs; resumable
+- ⚠️ `load_dotenv(override=True)` is required — shell may have empty env vars that shadow `.env`
+- ⚠️ `call_ingest()` returns `None` on LLM error (not `[]`) — check `if pages is None: continue` before updating state
+
+### Wiki API endpoints
+- `GET /api/wiki` — all pages grouped by category (optional `?category=` filter)
+- `GET /api/wiki/search?q=` — Postgres full-text search with `ts_headline` excerpts
+- `GET /api/wiki/{slug}` — single page detail
+
+### Wiki frontend (`frontend/src/WikiPage.tsx`)
+- Route: `/wiki` and `/wiki/*` — served as SPA from `index.html`
+- ⚠️ Global `index.css` locks `html, body, #root { height: 100dvh; overflow: hidden }` for the chat layout — WikiPage uses a `useEffect` to override this on mount and restore on unmount
+- `[[slug]]` cross-reference syntax → converted to `wiki-internal:` URLs → intercepted by custom ReactMarkdown link renderer → calls `openPage(slug)`
+- `video:{id} — Title` source citations → converted to `https://youtube.com/watch?v={id}` links via `processSourceLinks()`
+- Page body: plain article styling (no chat-bubble border), clean `ka-markdown` prose
+
+### Wiki schema doc
+`ingest/wiki_schema.md` — read by the LLM during ingest. Defines categories, page format (Summary / Key Points / Cross-References / Sources), slug conventions, tag vocabulary, and 8 ingest rules.
+
+### Pending wiki work
+- ⬜ GitHub Actions: `wiki-from-queries.yml` (nightly query gap analysis), `wiki-ingest-new-videos.yml`, optional `wiki-refine.yml` (weekly Opus pass)
+- ⬜ Switch default chat mode from `pinecone` to `wiki` when quality is ready
 
 ## PDF Ingest
 - Script: `ingest/embed_pdf.py`
