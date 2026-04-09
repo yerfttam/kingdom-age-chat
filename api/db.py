@@ -27,7 +27,7 @@ def get_conn():
 
 
 def init_db():
-    """Create the queries table if it doesn't exist."""
+    """Create all tables if they don't exist."""
     conn = get_conn()
     if not conn:
         return
@@ -44,7 +44,64 @@ def init_db():
                     session_id    TEXT
                 )
             """)
-        logger.info("DB ready — queries table OK")
+
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS wiki_pages (
+                    id             SERIAL PRIMARY KEY,
+                    slug           TEXT UNIQUE NOT NULL,
+                    title          TEXT NOT NULL,
+                    category       TEXT NOT NULL,
+                    body           TEXT NOT NULL,
+                    sources        JSONB DEFAULT '[]',
+                    tags           TEXT[] DEFAULT '{}',
+                    search_vector  TSVECTOR,
+                    created_at     TIMESTAMPTZ DEFAULT NOW(),
+                    updated_at     TIMESTAMPTZ DEFAULT NOW()
+                )
+            """)
+
+            cur.execute("""
+                CREATE INDEX IF NOT EXISTS wiki_pages_search_idx
+                    ON wiki_pages USING GIN(search_vector)
+            """)
+
+            cur.execute("""
+                CREATE INDEX IF NOT EXISTS wiki_pages_category_idx
+                    ON wiki_pages (category)
+            """)
+
+            cur.execute("""
+                CREATE OR REPLACE FUNCTION wiki_pages_search_vector_update()
+                RETURNS TRIGGER AS $$
+                BEGIN
+                    NEW.search_vector := to_tsvector('english', NEW.title || ' ' || NEW.body);
+                    NEW.updated_at := NOW();
+                    RETURN NEW;
+                END;
+                $$ LANGUAGE plpgsql
+            """)
+
+            cur.execute("""
+                DROP TRIGGER IF EXISTS wiki_pages_search_vector_trigger ON wiki_pages
+            """)
+
+            cur.execute("""
+                CREATE TRIGGER wiki_pages_search_vector_trigger
+                BEFORE INSERT OR UPDATE ON wiki_pages
+                FOR EACH ROW EXECUTE FUNCTION wiki_pages_search_vector_update()
+            """)
+
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS wiki_ingest_log (
+                    id           SERIAL PRIMARY KEY,
+                    source_id    TEXT UNIQUE NOT NULL,
+                    source_type  TEXT NOT NULL,
+                    ingested_at  TIMESTAMPTZ DEFAULT NOW(),
+                    page_slugs   TEXT[] DEFAULT '{}'
+                )
+            """)
+
+        logger.info("DB ready — all tables OK")
     except Exception as e:
         logger.error(f"DB init failed: {e}")
 

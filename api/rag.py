@@ -27,6 +27,20 @@ MIN_SCORE = 0.35     # drop chunks below this cosine similarity
 CHUNKS_PER_VIDEO = 2 # max chunks per video (ensures breadth across a series)
 MAX_VIDEOS = 20      # max distinct videos in final context
 
+WIKI_SYSTEM_PROMPT = """You are a knowledgeable assistant for Kingdom Age, a Christian ministry that teaches on the transition from the Church Age to the Kingdom Age — a new era in which God is actively establishing His kingdom on earth through His people.
+
+The context below consists of synthesized wiki pages drawn from hundreds of video teachings, written materials, and the book "The Seed" by Immanuel Sun. Each page represents compiled, cross-referenced knowledge on a topic.
+
+When answering:
+- Synthesize across all provided wiki pages into a single unified answer
+- Preserve Immanuel Sun's specific theological meanings — terms like "seed", "kingdom", "organic", and "sonship" carry precise meanings in Kingdom Age teaching
+- Be thorough — these are theological topics that deserve full treatment
+- Stay grounded in what the wiki pages actually say; do not add outside theology
+- If the pages only partially address the question, answer what you can and honestly note what is not covered
+- Do not mention, list, or cite sources in your answer — they are shown separately in the UI
+
+In multi-turn conversations, do not treat specific details from your own prior answers as verified facts unless they appear in the current WIKI CONTEXT."""
+
 SYSTEM_PROMPT = """You are a knowledgeable assistant for Kingdom Age, a Christian ministry that teaches on the transition from the Church Age to the Kingdom Age — a new era in which God is actively establishing His kingdom on earth through His people.
 
 The content comes from hundreds of video teachings and written materials covering topics such as: the Kingdom of God, the 7 Spirits of God, spiritual authority, prayer, intercession, end-times theology, the nature of the Church, discipleship, and prophetic ministry. Written sources include the book "The Seed" by Immanuel Sun.
@@ -137,6 +151,69 @@ def retrieve(question: str, history: Optional[List[Dict]] = None) -> List[Dict]:
     ]
 
 
+def retrieve_wiki(question: str, history: Optional[List[Dict]] = None, limit: int = 8) -> List[Dict]:
+    """Full-text search the wiki_pages table. Returns page dicts."""
+    from db import get_conn
+    retrieval_query = preprocess_query(question, history)
+
+    # Build a tsquery from the query terms
+    terms = [t.strip() for t in retrieval_query.split() if t.strip()]
+    if not terms:
+        return []
+    tsquery = " & ".join(terms)
+
+    conn = get_conn()
+    if not conn:
+        return []
+
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT slug, title, category, body, sources,
+                       ts_rank(search_vector, query) AS rank
+                FROM wiki_pages, to_tsquery('english', %s) query
+                WHERE search_vector @@ query
+                ORDER BY rank DESC
+                LIMIT %s
+            """, (tsquery, limit))
+            rows = cur.fetchall()
+    except Exception:
+        # Fallback: plain ILIKE search if tsquery fails (e.g. single stopword)
+        try:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT slug, title, category, body, sources, 1.0 AS rank
+                    FROM wiki_pages
+                    WHERE title ILIKE %s OR body ILIKE %s
+                    ORDER BY title
+                    LIMIT %s
+                """, ("%" + retrieval_query + "%", "%" + retrieval_query + "%", limit))
+                rows = cur.fetchall()
+        except Exception:
+            return []
+
+    return [
+        {
+            "slug":     r[0],
+            "title":    r[1],
+            "category": r[2],
+            "body":     r[3],
+            "sources":  r[4] if r[4] else [],
+            "score":    float(r[5]),
+        }
+        for r in rows
+    ]
+
+
+def build_context_wiki(pages: List[Dict]) -> str:
+    """Format wiki pages as LLM context."""
+    parts = []
+    for p in pages:
+        header = '[Wiki: "{}" — {}]'.format(p["title"], p["category"])
+        parts.append(header + "\n" + p["body"])
+    return "\n\n---\n\n".join(parts)
+
+
 def build_context(chunks: List[Dict]) -> str:
     # Group chunks by URL (videos) or title (PDFs with no URL)
     grouped = {}
@@ -165,17 +242,35 @@ def build_prompt(question: str, chunks: List[Dict]) -> Tuple:
     return SYSTEM_PROMPT, user_message
 
 
-def chat(question: str, model: str = CLAUDE_MODEL, history: Optional[List[Dict]] = None) -> Dict:
+def chat(question: str, model: str = CLAUDE_MODEL, history: Optional[List[Dict]] = None, mode: str = "pinecone") -> Dict:
     history = (history or [])[-6:]  # cap at last 3 exchanges
-    chunks = retrieve(question, history)
 
-    if not chunks:
-        return {
-            "answer": "I couldn't find anything relevant in the Kingdom Age library for that question.",
-            "sources": []
-        }
-
-    system_prompt, user_message = build_prompt(question, chunks)
+    if mode == "wiki":
+        pages = retrieve_wiki(question, history)
+        if not pages:
+            return {
+                "answer": "I couldn't find anything relevant in the Kingdom Age wiki for that question.",
+                "sources": []
+            }
+        context = build_context_wiki(pages)
+        system_prompt = WIKI_SYSTEM_PROMPT
+        user_message = "WIKI CONTEXT:\n" + context + "\n\nQUESTION: " + question
+        sources = [{"title": p["title"], "url": ""} for p in pages]
+    else:
+        chunks = retrieve(question, history)
+        if not chunks:
+            return {
+                "answer": "I couldn't find anything relevant in the Kingdom Age library for that question.",
+                "sources": []
+            }
+        system_prompt, user_message = build_prompt(question, chunks)
+        seen = set()
+        sources = []
+        for c in chunks:
+            dedup_key = c["url"] if c["url"] else c["title"]
+            if dedup_key not in seen:
+                seen.add(dedup_key)
+                sources.append({"title": c["title"], "url": c["url"]})
 
     # Build messages: prior user questions only (no assistant responses — avoids hallucination
     # where model elaborates on claims that are no longer in the current RAG context)
@@ -198,49 +293,40 @@ def chat(question: str, model: str = CLAUDE_MODEL, history: Optional[List[Dict]]
         )
         answer = response.content[0].text
 
-    # Deduplicate sources — use title as key for PDF chunks (url is empty)
-    seen = set()
-    sources = []
-    for c in chunks:
-        dedup_key = c["url"] if c["url"] else c["title"]
-        if dedup_key not in seen:
-            seen.add(dedup_key)
-            sources.append({"title": c["title"], "url": c["url"]})
-
     return {"answer": answer, "sources": sources}
 
 
-def stream_chat(question: str, model: str = CLAUDE_MODEL, history: Optional[List[Dict]] = None):
+def stream_chat(question: str, model: str = CLAUDE_MODEL, history: Optional[List[Dict]] = None, mode: str = "pinecone"):
     """Sync generator that yields SSE-formatted strings for streaming responses."""
     history = (history or [])[-6:]  # cap at last 3 exchanges
-    chunks = retrieve(question, history)
 
-    if not chunks:
-        no_results = "I couldn't find anything relevant in the Kingdom Age library for that question."
-        yield "data: " + json.dumps({"type": "text", "delta": no_results}) + "\n\n"
-        yield "data: " + json.dumps({"type": "sources", "sources": []}) + "\n\n"
-        yield 'data: {"type": "done"}\n\n'
-        return
-
-    system_prompt, user_message = build_prompt(question, chunks)
-
-    # DEBUG — remove before shipping
-    import logging as _log
-    _log.warning("=" * 60)
-    _log.warning(f"MODEL: {model}")
-    _log.warning(f"CHUNKS: {len(chunks)} | SYSTEM: {len(system_prompt.split())} words | USER MSG: {len(user_message.split())} words")
-    _log.warning("--- USER MESSAGE (first 2000 chars) ---")
-    _log.warning(user_message[:2000] + ("...[truncated]" if len(user_message) > 2000 else ""))
-    _log.warning("=" * 60)
-
-    # Deduplicate sources — use title as key for PDF chunks (url is empty)
-    seen = set()
-    sources = []
-    for c in chunks:
-        dedup_key = c["url"] if c["url"] else c["title"]
-        if dedup_key not in seen:
-            seen.add(dedup_key)
-            sources.append({"title": c["title"], "url": c["url"]})
+    if mode == "wiki":
+        pages = retrieve_wiki(question, history)
+        if not pages:
+            no_results = "I couldn't find anything relevant in the Kingdom Age wiki for that question."
+            yield "data: " + json.dumps({"type": "text", "delta": no_results}) + "\n\n"
+            yield "data: " + json.dumps({"type": "sources", "sources": []}) + "\n\n"
+            yield 'data: {"type": "done"}\n\n'
+            return
+        system_prompt = WIKI_SYSTEM_PROMPT
+        user_message = "WIKI CONTEXT:\n" + build_context_wiki(pages) + "\n\nQUESTION: " + question
+        sources = [{"title": p["title"], "url": ""} for p in pages]
+    else:
+        chunks = retrieve(question, history)
+        if not chunks:
+            no_results = "I couldn't find anything relevant in the Kingdom Age library for that question."
+            yield "data: " + json.dumps({"type": "text", "delta": no_results}) + "\n\n"
+            yield "data: " + json.dumps({"type": "sources", "sources": []}) + "\n\n"
+            yield 'data: {"type": "done"}\n\n'
+            return
+        system_prompt, user_message = build_prompt(question, chunks)
+        seen = set()
+        sources = []
+        for c in chunks:
+            dedup_key = c["url"] if c["url"] else c["title"]
+            if dedup_key not in seen:
+                seen.add(dedup_key)
+                sources.append({"title": c["title"], "url": c["url"]})
 
     # Build messages: prior user questions only (no assistant responses — avoids hallucination
     # where model elaborates on claims that are no longer in the current RAG context)

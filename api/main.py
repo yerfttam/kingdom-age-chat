@@ -23,10 +23,8 @@ from db import init_db, log_query
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Log what port Railway assigned
     logger.info(f"PORT env var = {os.environ.get('PORT', 'NOT SET')}")
 
-    # Check API keys
     for key in ["OPENAI_API_KEY", "ANTHROPIC_API_KEY", "PINECONE_API_KEY"]:
         val = os.environ.get(key, "")
         if val:
@@ -34,7 +32,6 @@ async def lifespan(app: FastAPI):
         else:
             logger.error(f"MISSING {key} is not set")
 
-    # Test Pinecone connection
     try:
         from rag import index
         stats = index().describe_index_stats()
@@ -42,16 +39,13 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"FAIL Pinecone connection failed: {e}")
 
-    # Initialize database
     init_db()
-
     yield
 
 
 app = FastAPI(title="Kingdom Age Chat", lifespan=lifespan)
 
 FRONTEND_DIST = os.path.join(os.path.dirname(__file__), '..', 'frontend', 'dist')
-
 
 ALLOWED_MODELS = {
     "claude-haiku-4-5-20251001",
@@ -71,6 +65,7 @@ class ChatRequest(BaseModel):
     model: str = "claude-opus-4-6"
     history: List[HistoryMessage] = []
     session_id: Optional[str] = None
+    mode: str = "pinecone"  # "pinecone" (default) or "wiki"
 
 
 class Source(BaseModel):
@@ -90,7 +85,7 @@ async def chat_endpoint(req: ChatRequest):
     if req.model not in ALLOWED_MODELS:
         raise HTTPException(status_code=400, detail=f"Unknown model: {req.model}")
     history = [{"role": m.role, "content": m.content} for m in req.history]
-    result = chat(req.question, model=req.model, history=history)
+    result = chat(req.question, model=req.model, history=history, mode=req.mode)
     return result
 
 
@@ -107,7 +102,7 @@ async def chat_stream_endpoint(req: ChatRequest):
         import json as _json
         start = time.time()
         num_sources = 0
-        for chunk in stream_chat(req.question, model=req.model, history=history):
+        for chunk in stream_chat(req.question, model=req.model, history=history, mode=req.mode):
             if '"type":"sources"' in chunk:
                 try:
                     if chunk.startswith("data: "):
@@ -169,8 +164,180 @@ async def report_data():
     return {"rows": rows, "total": total}
 
 
+# ---------------------------------------------------------------------------
+# Wiki endpoints
+# ---------------------------------------------------------------------------
+
+@app.get("/api/wiki")
+async def wiki_index(category: Optional[str] = None):
+    """Return all wiki pages grouped by category, optionally filtered."""
+    from db import get_conn
+    conn = get_conn()
+    if not conn:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    try:
+        with conn.cursor() as cur:
+            if category:
+                cur.execute("""
+                    SELECT slug, title, category, tags, updated_at
+                    FROM wiki_pages
+                    WHERE category = %s
+                    ORDER BY title
+                """, (category,))
+            else:
+                cur.execute("""
+                    SELECT slug, title, category, tags, updated_at
+                    FROM wiki_pages
+                    ORDER BY category, title
+                """)
+            rows = cur.fetchall()
+    except Exception as e:
+        logger.error(f"Wiki index query failed: {e}")
+        raise HTTPException(status_code=500, detail="Query failed")
+
+    pages = [
+        {
+            "slug":       r[0],
+            "title":      r[1],
+            "category":   r[2],
+            "tags":       r[3] or [],
+            "updated_at": r[4].isoformat() if r[4] else None,
+        }
+        for r in rows
+    ]
+
+    grouped = {}
+    for p in pages:
+        grouped.setdefault(p["category"], []).append(p)
+
+    return {"pages": pages, "grouped": grouped, "total": len(pages)}
+
+
+@app.get("/api/wiki/search")
+async def wiki_search(q: str, limit: int = 10):
+    """Full-text search across wiki pages."""
+    if not q.strip():
+        raise HTTPException(status_code=400, detail="Query cannot be empty")
+    from db import get_conn
+    conn = get_conn()
+    if not conn:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT slug, title, category, tags,
+                       ts_rank(search_vector, query) AS rank,
+                       ts_headline('english', body, query,
+                           'MaxWords=40, MinWords=20, StartSel=<mark>, StopSel=</mark>'
+                       ) AS excerpt
+                FROM wiki_pages, to_tsquery('english', %s) query
+                WHERE search_vector @@ query
+                ORDER BY rank DESC
+                LIMIT %s
+            """, (_to_tsquery(q), limit))
+            rows = cur.fetchall()
+    except Exception as e:
+        logger.error(f"Wiki search failed: {e}")
+        raise HTTPException(status_code=500, detail="Search failed")
+
+    results = [
+        {
+            "slug":     r[0],
+            "title":    r[1],
+            "category": r[2],
+            "tags":     r[3] or [],
+            "rank":     float(r[4]),
+            "excerpt":  r[5],
+        }
+        for r in rows
+    ]
+    return {"results": results, "query": q}
+
+
+@app.get("/api/wiki/{slug}")
+async def wiki_page(slug: str):
+    """Return a single wiki page by slug."""
+    from db import get_conn
+    conn = get_conn()
+    if not conn:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT slug, title, category, body, sources, tags, created_at, updated_at
+                FROM wiki_pages
+                WHERE slug = %s
+            """, (slug,))
+            row = cur.fetchone()
+    except Exception as e:
+        logger.error(f"Wiki page query failed: {e}")
+        raise HTTPException(status_code=500, detail="Query failed")
+
+    if not row:
+        raise HTTPException(status_code=404, detail=f"Wiki page not found: {slug}")
+
+    return {
+        "slug":       row[0],
+        "title":      row[1],
+        "category":   row[2],
+        "body":       row[3],
+        "sources":    row[4] if row[4] else [],
+        "tags":       row[5] or [],
+        "created_at": row[6].isoformat() if row[6] else None,
+        "updated_at": row[7].isoformat() if row[7] else None,
+    }
+
+
+def _to_tsquery(q: str) -> str:
+    terms = [t.strip() for t in q.split() if t.strip()]
+    return " & ".join(terms) if terms else q
+
+
+@app.get("/admin")
+async def admin_page():
+    return FileResponse(os.path.join(FRONTEND_DIST, 'index.html'))
+
+
+@app.get("/wiki")
+@app.get("/wiki/{path:path}")
+async def wiki_spa(path: str = ""):
+    return FileResponse(os.path.join(FRONTEND_DIST, 'index.html'))
+
+
+@app.get("/admin/data")
+async def admin_data():
+    from db import get_conn
+    conn = get_conn()
+    rows = []
+    total = 0
+    if conn:
+        try:
+            with conn.cursor() as cur:
+                cur.execute("SELECT COUNT(*) FROM queries")
+                total = cur.fetchone()[0]
+                cur.execute("""
+                    SELECT created_at, question, model, response_ms, session_id
+                    FROM queries
+                    ORDER BY created_at DESC
+                    LIMIT 200
+                """)
+                raw = cur.fetchall()
+                rows = [
+                    {
+                        "created_at": r[0].strftime("%Y-%m-%d %H:%M:%S") if r[0] else "",
+                        "question": r[1] or "",
+                        "model": r[2] or "",
+                        "response_ms": r[3],
+                        "session_id": r[4] or "",
+                    }
+                    for r in raw
+                ]
+        except Exception as e:
+            logger.error(f"Admin query failed: {e}")
+    return {"rows": rows, "total": total}
+
+
 # Serve frontend (React build output)
-# Falls back gracefully if dist/ doesn't exist yet (local dev uses Vite dev server)
 if os.path.isdir(FRONTEND_DIST):
     app.mount("/", StaticFiles(directory=FRONTEND_DIST, html=True), name="frontend")
 else:
