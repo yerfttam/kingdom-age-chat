@@ -24,6 +24,10 @@ Usage:
     # Refine pass — Opus improves all existing wiki pages
     .venv/bin/python3 ingest/build_wiki.py --refine
     .venv/bin/python3 ingest/build_wiki.py --refine --limit 10
+
+Note: the ingest pass now enhances existing pages rather than overwriting them.
+Each new source deepens existing wiki pages with a call_enhance() LLM call (Sonnet).
+New slugs are inserted fresh; existing slugs are enriched with the new source content.
 """
 
 import argparse
@@ -222,6 +226,26 @@ def fetch_all_slugs(conn):
         return cur.fetchall()
 
 
+def fetch_page_by_slug(conn, slug):
+    """Return an existing page dict by slug, or None if it doesn't exist."""
+    with conn.cursor() as cur:
+        cur.execute(
+            "SELECT slug, title, category, body, sources, tags FROM wiki_pages WHERE slug = %s",
+            (slug,)
+        )
+        row = cur.fetchone()
+    if not row:
+        return None
+    return {
+        "slug":     row[0],
+        "title":    row[1],
+        "category": row[2],
+        "body":     row[3],
+        "sources":  row[4] if row[4] else [],
+        "tags":     row[5] if row[5] else [],
+    }
+
+
 def update_page_body(cur, slug, body):
     cur.execute(
         "UPDATE wiki_pages SET body = %s, updated_at = NOW() WHERE slug = %s",
@@ -317,6 +341,67 @@ def call_ingest(client, schema, source_type, source_id, title, url, text, known_
         return parse_json_array(response.content[0].text)
     except Exception as e:
         print(f"    LLM error for {source_id}: {e}")
+        return None
+
+
+ENHANCE_SYSTEM = """\
+You are deepening an existing Kingdom Age wiki page with new content from an additional source.
+Kingdom Age is a Christian ministry with multiple teachers.
+Immanuel Sun was a foundational teacher who has passed away; his teachings are still central.
+Other teachers contribute equally — do not over-attribute to Immanuel Sun.
+
+You will receive:
+1. The EXISTING wiki page body (already synthesized from previous sources)
+2. A NEW page body extracted from a new source covering the same concept
+
+Your job: return an enhanced body that is richer than either alone.
+- Add Key Points that are genuinely new or that add nuance not already present
+- Deepen existing Key Points with new examples, quotes, or angles from the new source
+- Update the Summary only if the new source adds meaningfully new understanding
+- Add new Cross-References if valid (from the slug list below)
+- Keep everything that is already in the existing page — do NOT remove or water down existing content
+- Do NOT repeat the same point twice — merge overlapping content into sharper single bullets
+- Do NOT add claims not supported by either source
+
+Valid slugs for cross-references:
+{slug_list}
+
+Return ONLY the enhanced body markdown — no explanation, no frontmatter, nothing else.
+
+Schema for reference:
+{schema}
+"""
+
+
+def call_enhance(client, schema, existing_page, new_page, source_title, known_slugs=None):
+    """Call Sonnet to deepen an existing wiki page with content from a new source."""
+    slug_list = _format_slug_list(known_slugs or [])
+    system = ENHANCE_SYSTEM.format(schema=schema, slug_list=slug_list)
+
+    user = (
+        "EXISTING PAGE\n"
+        "Slug: {slug}\nTitle: {title}\nCategory: {category}\n\n{existing_body}\n\n"
+        "---\n\n"
+        "NEW CONTENT (from source: {source_title})\n\n{new_body}"
+    ).format(
+        slug=existing_page['slug'],
+        title=existing_page['title'],
+        category=existing_page['category'],
+        existing_body=existing_page['body'],
+        source_title=source_title,
+        new_body=new_page['body'],
+    )
+
+    try:
+        response = client.messages.create(
+            model=INGEST_MODEL,
+            max_tokens=8096,
+            system=system,
+            messages=[{"role": "user", "content": user}]
+        )
+        return response.content[0].text.strip()
+    except Exception as e:
+        print(f"    LLM enhance error for {existing_page['slug']}: {e}")
         return None
 
 
@@ -524,15 +609,39 @@ def run_ingest(sources, state, state_key, dry_run=False):
 
             if not dry_run and conn:
                 slugs = []
-                with conn.cursor() as cur:
-                    for page in pages:
-                        if not _valid_page(page):
-                            tqdm.write(f"    Skipping malformed page: {page.get('slug', '?')}")
-                            continue
+                for page in pages:
+                    if not _valid_page(page):
+                        tqdm.write(f"    Skipping malformed page: {page.get('slug', '?')}")
+                        continue
+
+                    existing = fetch_page_by_slug(conn, page['slug'])
+
+                    if existing:
+                        # Enhance: deepen existing page with new source content
+                        tqdm.write(f"    {page['slug']}: enhancing with new source...")
+                        enhanced_body = call_enhance(
+                            client, schema, existing, page,
+                            source_title=src['title'],
+                            known_slugs=known_slugs,
+                        )
+                        if enhanced_body:
+                            page['body'] = enhanced_body
+                            tqdm.write(f"    {page['slug']}: enhanced ({len(enhanced_body)} chars)")
+                        else:
+                            tqdm.write(f"    {page['slug']}: enhance failed — keeping existing body")
+                            page['body'] = existing['body']
+                    else:
+                        tqdm.write(f"    {page['slug']}: new page")
+
+                    with conn.cursor() as cur:
                         upsert_page(cur, page)
                         slugs.append(page['slug'])
+                    conn.commit()
+
+                with conn.cursor() as cur:
                     log_ingest(cur, sid, src['source_type'], slugs)
                 conn.commit()
+
                 # Update known_slugs so subsequent sources can reference new pages
                 for page in pages:
                     if _valid_page(page):

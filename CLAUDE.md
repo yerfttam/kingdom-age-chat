@@ -99,7 +99,8 @@ The wiki is a Karpathy-style LLM knowledge base: instead of raw chunk retrieval,
 - `--limit N` — process only N sources (useful for testing)
 - `--dry-run` — print LLM output without writing to DB
 - `--refine` — **Opus refine pass**: re-reads every existing page and improves it (better synthesis, sharper language). Does NOT re-ingest sources.
-- Models: `INGEST_MODEL = "claude-sonnet-4-6"` (first pass), `REFINE_MODEL = "claude-opus-4-6"` (refine pass)
+- Models: `INGEST_MODEL = "claude-sonnet-4-6"` (first pass + enhance), `REFINE_MODEL = "claude-opus-4-6"` (refine pass)
+- **Additive ingest**: when a source produces a page whose slug already exists, `call_enhance()` merges the existing body with the new content — pages deepen with every new source rather than being overwritten
 - State file: `data/wiki_ingest.json` — tracks processed source IDs; resumable
 - ⚠️ `load_dotenv(override=True)` is required — shell may have empty env vars that shadow `.env`
 - ⚠️ `call_ingest()` returns `None` on LLM error (not `[]`) — check `if pages is None: continue` before updating state
