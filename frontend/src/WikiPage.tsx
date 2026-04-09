@@ -104,6 +104,23 @@ export default function WikiPage() {
   const searchRef = useRef<HTMLInputElement>(null)
   const topRef    = useRef<HTMLDivElement>(null)
 
+  /* Unlock scrolling — the global CSS locks height + overflow for the chat layout */
+  useEffect(() => {
+    const root = document.getElementById('root')
+    document.documentElement.style.height = 'auto'
+    document.documentElement.style.overflow = 'auto'
+    document.body.style.height = 'auto'
+    document.body.style.overflow = 'auto'
+    if (root) { root.style.height = 'auto'; root.style.overflow = 'visible' }
+    return () => {
+      document.documentElement.style.height = ''
+      document.documentElement.style.overflow = ''
+      document.body.style.height = ''
+      document.body.style.overflow = ''
+      if (root) { root.style.height = ''; root.style.overflow = '' }
+    }
+  }, [])
+
   /* load index */
   useEffect(() => {
     fetch('/api/wiki')
