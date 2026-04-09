@@ -90,12 +90,29 @@ function processWikiLinks(body: string): string {
   )
 }
 
-/* Convert "video:{id} — {title}" source citations into clickable YouTube links */
-function processSourceLinks(body: string): string {
-  return body.replace(
-    /video:([A-Za-z0-9_-]+)\s*[—–-]\s*(.+)/g,
-    (_m, id, title) => `[${title.trim()} ↗](https://youtube.com/watch?v=${id})`
-  )
+/* Strip the ## Sources section from the body — we render sources from the JSONB array instead */
+function stripSourcesSection(body: string): string {
+  return body.replace(/\n?## Sources[\s\S]*$/m, '').trimEnd()
+}
+
+/* Render a source string as a React element — video:{id} — Title becomes a YouTube link */
+function renderSource(s: string, i: number) {
+  const m = s.match(/^video:([A-Za-z0-9_-]+)(?:\s*[—–-]\s*(.+))?$/)
+  if (m) {
+    const [, id, title] = m
+    const label = title ? title.trim() : id
+    return (
+      <a key={i} href={`https://youtube.com/watch?v=${id}`} target="_blank" rel="noopener noreferrer"
+        style={{ display: 'block', color: '#8b0000', fontSize: '0.82rem', textDecoration: 'none', marginBottom: 6 }}
+        onMouseEnter={e => (e.currentTarget.style.textDecoration = 'underline')}
+        onMouseLeave={e => (e.currentTarget.style.textDecoration = 'none')}
+      >
+        {label} ↗
+      </a>
+    )
+  }
+  // PDF or unknown source — plain text
+  return <span key={i} style={{ display: 'block', fontSize: '0.82rem', color: '#888', marginBottom: 6 }}>{s}</span>
 }
 
 /* ─── WikiPage ───────────────────────────────────────────────────── */
@@ -463,9 +480,19 @@ export default function WikiPage() {
                   color: '#2c2c2c',
                 }}>
                   <ReactMarkdown components={{ a: linkRenderer }}>
-                    {processSourceLinks(processWikiLinks(currentPage.body))}
+                    {processWikiLinks(stripSourcesSection(currentPage.body))}
                   </ReactMarkdown>
                 </div>
+
+                {/* Sources — rendered from JSONB array, always accurate */}
+                {currentPage.sources && currentPage.sources.length > 0 && (
+                  <div style={{ marginTop: 28, paddingTop: 16, borderTop: '1px solid #e8e8e8' }}>
+                    <p style={{ fontSize: '0.65rem', fontFamily: 'Barlow, Helvetica, Arial, sans-serif', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#aaa', marginBottom: 10 }}>
+                      Sources
+                    </p>
+                    {currentPage.sources.map((s, i) => renderSource(String(s), i))}
+                  </div>
+                )}
 
                 {/* Updated at */}
                 {currentPage.updated_at && (
