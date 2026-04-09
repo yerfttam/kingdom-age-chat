@@ -215,6 +215,13 @@ def fetch_all_wiki_pages(conn):
     return pages
 
 
+def fetch_all_slugs(conn):
+    """Return a list of (slug, title) tuples for every page in the wiki."""
+    with conn.cursor() as cur:
+        cur.execute("SELECT slug, title FROM wiki_pages ORDER BY title")
+        return cur.fetchall()
+
+
 def update_page_body(cur, slug, body):
     cur.execute(
         "UPDATE wiki_pages SET body = %s, updated_at = NOW() WHERE slug = %s",
@@ -240,6 +247,13 @@ Follow the schema exactly:
 
 {schema}
 
+IMPORTANT — Cross-references:
+The following slugs are the ONLY valid wiki pages that currently exist. In the Cross-References section,
+you may ONLY use [[slug]] links from this list. Do not invent slugs that are not listed here.
+If no valid cross-reference exists for a concept, omit it rather than linking to a non-existent page.
+
+{slug_list}
+
 Return ONLY a valid JSON array of page objects — no prose, no markdown fences, no explanation.
 Each object must have: slug, title, category, body, tags, sources.
 
@@ -252,9 +266,16 @@ You are improving an existing Kingdom Age wiki page. Kingdom Age is a Christian 
 Your job: rewrite the page body to improve:
 - Theological precision — preserve Immanuel Sun's specific meanings (seed, kingdom, organic, sonship are not generic terms)
 - Clarity and concision — remove redundancy, tighten prose
-- Cross-references — add [[slug]] links where relevant concepts exist
+- Cross-references — add or fix [[slug]] links where relevant concepts exist
 - Key Points — ensure each bullet is distinct and non-redundant
 - Prophetic pages — ensure the vision narrative is preserved faithfully before the theological interpretation
+
+IMPORTANT — Cross-references:
+The following slugs are the ONLY valid wiki pages that currently exist. In the Cross-References section,
+you may ONLY use [[slug]] links from this list. Remove any [[slug]] links that are not in this list.
+Do not invent slugs that are not listed here.
+
+{slug_list}
 
 Do NOT add new factual claims that aren't supported by the existing content.
 Do NOT change the slug, title, category, tags, or sources fields.
@@ -266,9 +287,17 @@ Schema for reference:
 """
 
 
-def call_ingest(client, schema, source_type, source_id, title, url, text):
+def _format_slug_list(slug_pairs):
+    """Format [(slug, title), ...] into a readable list for the LLM."""
+    if not slug_pairs:
+        return "(no pages in wiki yet — do not add any cross-references)"
+    return "\n".join("- {}: {}".format(slug, title) for slug, title in slug_pairs)
+
+
+def call_ingest(client, schema, source_type, source_id, title, url, text, known_slugs=None):
     """Call Sonnet to extract wiki pages from a source."""
-    system = INGEST_SYSTEM.format(schema=schema)
+    slug_list = _format_slug_list(known_slugs or [])
+    system = INGEST_SYSTEM.format(schema=schema, slug_list=slug_list)
 
     source_header = "Source type: {}\nTitle: {}\nURL: {}\nSource ID: {}\n\n{}".format(
         source_type, title, url, source_id, text
@@ -287,9 +316,10 @@ def call_ingest(client, schema, source_type, source_id, title, url, text):
         return None
 
 
-def call_refine(client, schema, page):
+def call_refine(client, schema, page, known_slugs=None):
     """Call Opus to improve an existing wiki page body."""
-    system = REFINE_SYSTEM.format(schema=schema)
+    slug_list = _format_slug_list(known_slugs or [])
+    system = REFINE_SYSTEM.format(schema=schema, slug_list=slug_list)
 
     user = "Existing page:\n\nSlug: {}\nTitle: {}\nCategory: {}\nTags: {}\nSources: {}\n\n{}".format(
         page['slug'],
@@ -465,13 +495,17 @@ def run_ingest(sources, state, state_key, dry_run=False):
     if conn:
         ensure_tables(conn)
 
+    # Seed the known slugs from DB so cross-references stay valid
+    known_slugs = list(fetch_all_slugs(conn)) if conn else []
+
     try:
         for src in tqdm(pending, desc="Building wiki"):
             sid = src['source_id']
             pages = call_ingest(
                 client, schema,
                 src['source_type'], sid,
-                src['title'], src['url'], src['text']
+                src['title'], src['url'], src['text'],
+                known_slugs=known_slugs,
             )
 
             llm_failed = pages is None
@@ -495,6 +529,12 @@ def run_ingest(sources, state, state_key, dry_run=False):
                         slugs.append(page['slug'])
                     log_ingest(cur, sid, src['source_type'], slugs)
                 conn.commit()
+                # Update known_slugs so subsequent sources can reference new pages
+                for page in pages:
+                    if _valid_page(page):
+                        entry = (page['slug'], page['title'])
+                        if entry not in known_slugs:
+                            known_slugs.append(entry)
 
             done.add(sid)
             state[state_key] = list(done)
@@ -521,17 +561,19 @@ def run_refine(limit=None, dry_run=False):
     client = Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
     schema = load_schema()
 
-    conn   = get_db_conn()
-    pages  = fetch_all_wiki_pages(conn)
+    conn        = get_db_conn()
+    pages       = fetch_all_wiki_pages(conn)
+    known_slugs = fetch_all_slugs(conn)  # fetch once — stable for the whole pass
 
     if limit:
         pages = pages[:limit]
 
     print(f"\nRefining {len(pages)} wiki pages with {REFINE_MODEL}...")
+    print(f"  {len(known_slugs)} valid slugs loaded for cross-reference checking.")
 
     try:
         for page in tqdm(pages, desc="Refining wiki"):
-            improved_body = call_refine(client, schema, page)
+            improved_body = call_refine(client, schema, page, known_slugs=known_slugs)
 
             if not improved_body:
                 tqdm.write(f"  {page['slug']}: skipped (no response)")
