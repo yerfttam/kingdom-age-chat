@@ -104,6 +104,7 @@ export default function WikiPage() {
 
   const [currentPage, setCurrentPage]   = useState<PageDetail | null>(null)
   const [pageLoading, setPageLoading]   = useState(false)
+  const [pageMode, setPageMode]         = useState(false)  // true when we're in page view, even if load failed
 
   const [searchQuery, setSearchQuery]   = useState('')
   const [searchResults, setSearchResults] = useState<SearchResult[] | null>(null)
@@ -150,6 +151,7 @@ export default function WikiPage() {
 
   /* open a page */
   const openPage = useCallback(async (slug: string) => {
+    setPageMode(true)
     setPageLoading(true)
     setCurrentPage(null)
     topRef.current?.scrollIntoView()
@@ -168,6 +170,7 @@ export default function WikiPage() {
   const goIndex = () => {
     setCurrentPage(null)
     setPageLoading(false)
+    setPageMode(false)
     topRef.current?.scrollIntoView()
   }
 
@@ -211,7 +214,7 @@ export default function WikiPage() {
     )
   }, [openPage])
 
-  const isPageView = currentPage !== null || pageLoading
+  const isPageView = pageMode
 
   return (
     <div style={{ minHeight: '100dvh', overflowY: 'auto', background: '#f5f5f5', display: 'flex', flexDirection: 'column' }}>
