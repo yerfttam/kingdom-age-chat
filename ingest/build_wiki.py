@@ -617,6 +617,14 @@ def run_ingest(sources, state, state_key, dry_run=False, limit=None):
                         tqdm.write(f"    Skipping malformed page: {page.get('slug', '?')}")
                         continue
 
+                    # Ensure the current source is correctly recorded with the exact title
+                    correct_source = '{} — {}'.format(src['source_id'], src['title']) if src['source_type'] == 'video' else src['source_id']
+                    correct_source_str = 'video:{}'.format(correct_source) if src['source_type'] == 'video' else correct_source
+                    page_sources = page.get('sources', [])
+                    page_sources = [s for s in page_sources if not str(s).startswith('video:{}'.format(src['source_id']))]
+                    page_sources.append(correct_source_str)
+                    page['sources'] = page_sources
+
                     existing = fetch_page_by_slug(conn, page['slug'])
 
                     if existing:
