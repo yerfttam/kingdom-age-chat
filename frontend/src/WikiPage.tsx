@@ -87,6 +87,14 @@ function processWikiLinks(body: string): string {
   return body.replace(/\[\[([^\]]+)\]\]/g, (_m, slug) => `[${slug}](wiki-internal:${slug})`)
 }
 
+/* Convert "video:{id} — {title}" source citations into clickable YouTube links */
+function processSourceLinks(body: string): string {
+  return body.replace(
+    /video:([A-Za-z0-9_-]+)\s*[—–-]\s*(.+)/g,
+    (_m, id, title) => `[${title.trim()} ↗](https://youtube.com/watch?v=${id})`
+  )
+}
+
 /* ─── WikiPage ───────────────────────────────────────────────────── */
 
 export default function WikiPage() {
@@ -412,33 +420,14 @@ export default function WikiPage() {
 
                 {/* Body */}
                 <div className="ka-markdown" style={{
-                  background: '#fff',
-                  borderLeft: '3px solid #c0392b',
-                  borderRadius: '0 8px 8px 0',
-                  padding: '16px 20px',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
                   fontSize: '0.95rem',
-                  lineHeight: 1.7,
+                  lineHeight: 1.75,
                   color: '#2c2c2c',
                 }}>
                   <ReactMarkdown components={{ a: linkRenderer }}>
-                    {processWikiLinks(currentPage.body)}
+                    {processSourceLinks(processWikiLinks(currentPage.body))}
                   </ReactMarkdown>
                 </div>
-
-                {/* Sources */}
-                {currentPage.sources && currentPage.sources.length > 0 && (
-                  <details style={{ marginTop: 20 }}>
-                    <summary style={{ fontSize: '0.65rem', color: '#8b0000', cursor: 'pointer', listStyle: 'none', userSelect: 'none', fontFamily: 'Barlow, Helvetica, Arial, sans-serif', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                      {currentPage.sources.length} source{currentPage.sources.length !== 1 ? 's' : ''} ›
-                    </summary>
-                    <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                      {currentPage.sources.map((s, i) => (
-                        <span key={i} style={{ fontSize: '0.72rem', color: '#aaa', display: 'block' }}>{String(s)}</span>
-                      ))}
-                    </div>
-                  </details>
-                )}
 
                 {/* Updated at */}
                 {currentPage.updated_at && (
