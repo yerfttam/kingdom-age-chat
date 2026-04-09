@@ -150,12 +150,13 @@ export default function WikiPage() {
       .finally(() => setIndexLoading(false))
   }, [])
 
-  /* open a page */
-  const openPage = useCallback(async (slug: string) => {
+  /* open a page — optionally skip pushState when called from popstate handler */
+  const openPage = useCallback(async (slug: string, pushHistory = true) => {
     setPageMode(true)
     setPageLoading(true)
     setCurrentPage(null)
     topRef.current?.scrollIntoView()
+    if (pushHistory) window.history.pushState({ slug }, '', `/wiki/${slug}`)
     try {
       const r = await fetch(`/api/wiki/${slug}`)
       if (!r.ok) throw new Error('not found')
@@ -168,12 +169,35 @@ export default function WikiPage() {
   }, [])
 
   /* go back to index */
-  const goIndex = () => {
+  const goIndex = (pushHistory = true) => {
     setCurrentPage(null)
     setPageLoading(false)
     setPageMode(false)
+    if (pushHistory) window.history.pushState({}, '', '/wiki')
     topRef.current?.scrollIntoView()
   }
+
+  /* handle browser back/forward */
+  useEffect(() => {
+    const onPop = (e: PopStateEvent) => {
+      const slug = e.state?.slug
+      if (slug) {
+        openPage(slug, false)
+      } else {
+        goIndex(false)
+      }
+    }
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [openPage])
+
+  /* on mount, load page if URL is /wiki/some-slug */
+  useEffect(() => {
+    const match = window.location.pathname.match(/^\/wiki\/(.+)$/)
+    if (match) {
+      openPage(match[1], false)
+    }
+  }, [])
 
   /* search */
   const runSearch = useCallback(async (q: string) => {
@@ -240,7 +264,7 @@ export default function WikiPage() {
         {/* Back button — left-anchored */}
         {isPageView && (
           <button
-            onClick={goIndex}
+            onClick={() => goIndex()}
             style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#8b0000', fontFamily: 'Barlow, Helvetica, Arial, sans-serif', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em', textTransform: 'uppercase', flexShrink: 0, zIndex: 1 }}
           >
             ← Wiki
