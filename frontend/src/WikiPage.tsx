@@ -334,37 +334,49 @@ export default function WikiPage() {
               </div>
             </div>
 
-            {/* Random topic button — only shown when not in a search */}
+            {/* Action buttons — only shown when not in a search */}
             {searchResults === null && !indexLoading && total > 0 && (
-              <button
-                onClick={() => {
-                  const all = Object.values(grouped).flat()
-                  if (!all.length) return
-                  openPage(all[Math.floor(Math.random() * all.length)].slug)
-                }}
-                style={{
-                  display: 'block',
-                  width: '100%',
-                  marginBottom: 28,
-                  padding: '11px 0',
-                  background: '#fff',
-                  border: '1px solid #e0e0e0',
-                  borderRadius: 8,
-                  fontFamily: 'Barlow, Helvetica, Arial, sans-serif',
-                  fontSize: '0.85rem',
-                  fontWeight: 700,
-                  letterSpacing: '0.05em',
-                  textTransform: 'uppercase',
-                  color: '#8b0000',
-                  cursor: 'pointer',
-                  boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
-                  transition: 'border-color 0.15s, box-shadow 0.15s',
-                }}
-                onMouseEnter={e => { e.currentTarget.style.borderColor = '#c0392b'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(192,57,43,0.1)' }}
-                onMouseLeave={e => { e.currentTarget.style.borderColor = '#e0e0e0'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)' }}
-              >
-                Take me to a random topic
-              </button>
+              <div style={{ display: 'flex', gap: 12, marginBottom: 28 }}>
+                {[
+                  {
+                    label: 'Random',
+                    onClick: () => {
+                      const all = Object.values(grouped).flat()
+                      if (!all.length) return
+                      openPage(all[Math.floor(Math.random() * all.length)].slug)
+                    },
+                  },
+                  {
+                    label: 'Explore',
+                    onClick: () => { window.location.href = '/wiki-explore' },
+                  },
+                ].map(btn => (
+                  <button
+                    key={btn.label}
+                    onClick={btn.onClick}
+                    style={{
+                      flex: 1,
+                      padding: '11px 0',
+                      background: '#fff',
+                      border: '1px solid #e0e0e0',
+                      borderRadius: 8,
+                      fontFamily: 'Barlow, Helvetica, Arial, sans-serif',
+                      fontSize: '0.85rem',
+                      fontWeight: 700,
+                      letterSpacing: '0.05em',
+                      textTransform: 'uppercase',
+                      color: '#8b0000',
+                      cursor: 'pointer',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                      transition: 'border-color 0.15s, box-shadow 0.15s',
+                    }}
+                    onMouseEnter={e => { e.currentTarget.style.borderColor = '#c0392b'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(192,57,43,0.1)' }}
+                    onMouseLeave={e => { e.currentTarget.style.borderColor = '#e0e0e0'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)' }}
+                  >
+                    {btn.label}
+                  </button>
+                ))}
+              </div>
             )}
 
             {/* Search results */}
@@ -396,20 +408,6 @@ export default function WikiPage() {
                     </button>
                   ))}
                 </div>
-              </div>
-            )}
-
-            {/* Explore link */}
-            {searchResults === null && !indexLoading && total > 0 && (
-              <div style={{ textAlign: 'center' }}>
-                <a
-                  href="/wiki-explore"
-                  style={{ fontSize: '0.8rem', color: '#aaa', textDecoration: 'none', fontFamily: '"Fira Sans", sans-serif' }}
-                  onMouseEnter={e => (e.currentTarget.style.color = '#8b0000')}
-                  onMouseLeave={e => (e.currentTarget.style.color = '#aaa')}
-                >
-                  Explore all {total} topics →
-                </a>
               </div>
             )}
 
