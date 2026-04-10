@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, StreamingResponse
 from pydantic import BaseModel
 from typing import Optional, List
+import asyncio
 import logging
 import os
 import sys
@@ -21,10 +22,8 @@ from rag import chat, stream_chat
 from db import init_db, log_query
 
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    logger.info(f"PORT env var = {os.environ.get('PORT', 'NOT SET')}")
-
+def _startup_checks():
+    """Run slow startup checks in a background thread — never blocks the server from accepting requests."""
     for key in ["OPENAI_API_KEY", "ANTHROPIC_API_KEY", "PINECONE_API_KEY"]:
         val = os.environ.get(key, "")
         if val:
@@ -39,7 +38,19 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"FAIL Pinecone connection failed: {e}")
 
-    init_db()
+    try:
+        init_db()
+        logger.info("OK Database initialized")
+    except Exception as e:
+        logger.error(f"FAIL Database init failed: {e}")
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info(f"PORT env var = {os.environ.get('PORT', 'NOT SET')}")
+    # Fire checks in a background thread so the server is ready immediately
+    loop = asyncio.get_event_loop()
+    loop.run_in_executor(None, _startup_checks)
     yield
 
 
