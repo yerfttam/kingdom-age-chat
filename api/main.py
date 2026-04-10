@@ -320,11 +320,11 @@ async def wiki_status():
             """)
             by_category = [{"category": r[0], "count": r[1]} for r in cur.fetchall()]
 
-            # Total unique sources (flatten JSONB array)
+            # Total unique sources (flatten JSONB string array)
             cur.execute("""
-                SELECT COUNT(DISTINCT src->>'id')
+                SELECT COUNT(DISTINCT src)
                 FROM wiki_pages,
-                     jsonb_array_elements(sources) AS src
+                     jsonb_array_elements_text(sources) AS src
                 WHERE sources IS NOT NULL AND jsonb_array_length(sources) > 0
             """)
             total_sources = cur.fetchone()[0] or 0
@@ -353,11 +353,11 @@ async def wiki_status():
             # Source type breakdown (video / pdf / post)
             cur.execute("""
                 SELECT
-                    SUM(CASE WHEN src->>'id' LIKE 'video:%' THEN 1 ELSE 0 END) AS videos,
-                    SUM(CASE WHEN src->>'id' LIKE 'pdf:%'   THEN 1 ELSE 0 END) AS pdfs,
-                    SUM(CASE WHEN src->>'id' LIKE 'post:%'  THEN 1 ELSE 0 END) AS posts
+                    SUM(CASE WHEN src LIKE 'video:%' THEN 1 ELSE 0 END) AS videos,
+                    SUM(CASE WHEN src LIKE 'pdf:%'   THEN 1 ELSE 0 END) AS pdfs,
+                    SUM(CASE WHEN src LIKE 'post:%'  THEN 1 ELSE 0 END) AS posts
                 FROM wiki_pages,
-                     jsonb_array_elements(sources) AS src
+                     jsonb_array_elements_text(sources) AS src
                 WHERE sources IS NOT NULL AND jsonb_array_length(sources) > 0
             """)
             row = cur.fetchone()
