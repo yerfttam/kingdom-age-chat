@@ -150,7 +150,7 @@ export default function WikiStatusPage() {
               <StatCard label="Total Pages" value={status.total_pages} />
               <StatCard label="Sources Ingested" value={status.total_sources} />
               <StatCard label="Videos" value={status.source_types.videos} />
-              <StatCard label="PDF Chunks" value={status.source_types.pdfs} />
+              <StatCard label="PDF Sources" value={status.source_types.pdfs} />
               <StatCard label="Posts" value={status.source_types.posts} />
             </div>
 

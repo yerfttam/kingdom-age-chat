@@ -361,12 +361,12 @@ async def wiki_status():
                 for r in cur.fetchall()
             ]
 
-            # Source type breakdown (video / pdf / post)
+            # Source type breakdown — distinct per type so totals are consistent
             cur.execute("""
                 SELECT
-                    SUM(CASE WHEN src LIKE 'video:%' THEN 1 ELSE 0 END) AS videos,
-                    SUM(CASE WHEN src LIKE 'pdf:%'   THEN 1 ELSE 0 END) AS pdfs,
-                    SUM(CASE WHEN src LIKE 'post:%'  THEN 1 ELSE 0 END) AS posts
+                    COUNT(DISTINCT CASE WHEN src LIKE 'video:%' THEN src END) AS videos,
+                    COUNT(DISTINCT CASE WHEN src LIKE 'pdf:%'   THEN src END) AS pdfs,
+                    COUNT(DISTINCT CASE WHEN src LIKE 'post:%'  THEN src END) AS posts
                 FROM wiki_pages,
                      jsonb_array_elements_text(sources) AS src
                 WHERE sources IS NOT NULL AND jsonb_array_length(sources) > 0
