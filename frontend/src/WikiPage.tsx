@@ -29,15 +29,13 @@ interface SearchResult {
 
 /* ─── constants ──────────────────────────────────────────────────── */
 
-const CATEGORY_ORDER = ['Concepts', 'Teachings', 'Biblical Texts', 'Prophetic', 'Series', 'Entities']
-
 const CATEGORY_COLOR: Record<string, string> = {
-  'Concepts':      '#8b0000',
-  'Teachings':     '#c0392b',
-  'Biblical Texts':'#6b3a3a',
-  'Prophetic':     '#5b2d8b',
-  'Series':        '#1a5276',
-  'Entities':      '#666',
+  'Concepts':       '#8b0000',
+  'Teachings':      '#c0392b',
+  'Biblical Texts': '#6b3a3a',
+  'Prophetic':      '#5b2d8b',
+  'Series':         '#1a5276',
+  'Entities':       '#666',
 }
 
 /* ─── helpers ────────────────────────────────────────────────────── */
@@ -306,7 +304,7 @@ export default function WikiPage() {
         {!isPageView && (
           <>
             {/* Search */}
-            <div className="ka-input-card" style={{ marginBottom: 24 }}>
+            <div className="ka-input-card" style={{ marginBottom: 12 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <input
                   ref={searchRef}
@@ -335,6 +333,39 @@ export default function WikiPage() {
                 )}
               </div>
             </div>
+
+            {/* Random topic button — only shown when not in a search */}
+            {searchResults === null && !indexLoading && total > 0 && (
+              <button
+                onClick={() => {
+                  const all = Object.values(grouped).flat()
+                  if (!all.length) return
+                  openPage(all[Math.floor(Math.random() * all.length)].slug)
+                }}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  marginBottom: 28,
+                  padding: '11px 0',
+                  background: '#fff',
+                  border: '1px solid #e0e0e0',
+                  borderRadius: 8,
+                  fontFamily: 'Barlow, Helvetica, Arial, sans-serif',
+                  fontSize: '0.85rem',
+                  fontWeight: 700,
+                  letterSpacing: '0.05em',
+                  textTransform: 'uppercase',
+                  color: '#8b0000',
+                  cursor: 'pointer',
+                  boxShadow: '0 1px 3px rgba(0,0,0,0.05)',
+                  transition: 'border-color 0.15s, box-shadow 0.15s',
+                }}
+                onMouseEnter={e => { e.currentTarget.style.borderColor = '#c0392b'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(192,57,43,0.1)' }}
+                onMouseLeave={e => { e.currentTarget.style.borderColor = '#e0e0e0'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)' }}
+              >
+                Take me to a random topic
+              </button>
+            )}
 
             {/* Search results */}
             {searchResults !== null && (
@@ -368,76 +399,26 @@ export default function WikiPage() {
               </div>
             )}
 
-            {/* Category index */}
-            {searchResults === null && (
-              indexLoading ? (
-                <p style={{ textAlign: 'center', color: '#aaa', fontSize: '0.9rem', marginTop: 40 }}>Loading…</p>
-              ) : total === 0 ? (
-                <div style={{ textAlign: 'center', marginTop: 60 }}>
-                  <p style={{ color: '#aaa', fontSize: '0.9rem' }}>The wiki is empty.</p>
-                  <p style={{ color: '#ccc', fontSize: '0.8rem', marginTop: 8 }}>Run the ingest script to populate it.</p>
-                </div>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 28 }}>
-                  {CATEGORY_ORDER.filter(cat => grouped[cat]?.length).map(cat => (
-                    <section key={cat}>
-                      {/* Category header */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                        <h2 style={{
-                          fontFamily: 'Barlow, Helvetica, Arial, sans-serif',
-                          fontSize: '0.7rem',
-                          fontWeight: 700,
-                          letterSpacing: '0.1em',
-                          textTransform: 'uppercase',
-                          color: CATEGORY_COLOR[cat] ?? '#888',
-                        }}>
-                          {cat}
-                        </h2>
-                        <div style={{ flex: 1, height: 1, background: '#e8e8e8' }} />
-                        <span style={{ fontSize: '0.6rem', color: '#ccc' }}>{grouped[cat].length}</span>
-                      </div>
+            {/* Explore link */}
+            {searchResults === null && !indexLoading && total > 0 && (
+              <div style={{ textAlign: 'center' }}>
+                <a
+                  href="/wiki-explore"
+                  style={{ fontSize: '0.8rem', color: '#aaa', textDecoration: 'none', fontFamily: '"Fira Sans", sans-serif' }}
+                  onMouseEnter={e => (e.currentTarget.style.color = '#8b0000')}
+                  onMouseLeave={e => (e.currentTarget.style.color = '#aaa')}
+                >
+                  Explore all {total} topics →
+                </a>
+              </div>
+            )}
 
-                      {/* Page list */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        {grouped[cat].map(page => (
-                          <button
-                            key={page.slug}
-                            onClick={() => openPage(page.slug)}
-                            style={{ textAlign: 'left', background: '#fff', border: '1px solid #e4e4e4', borderRadius: 8, padding: '10px 14px', cursor: 'pointer', boxShadow: '0 1px 3px rgba(0,0,0,0.04)', transition: 'border-color 0.15s, box-shadow 0.15s' }}
-                            onMouseEnter={e => { e.currentTarget.style.borderColor = '#c0392b'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(192,57,43,0.1)' }}
-                            onMouseLeave={e => { e.currentTarget.style.borderColor = '#e4e4e4'; e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.04)' }}
-                          >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: page.tags?.length ? 6 : 0 }}>
-                              <span style={{ flex: 1, fontSize: '0.92rem', fontWeight: 600, color: '#1a1a1a' }}>{page.title}</span>
-                              <span style={{ fontSize: '0.62rem', color: '#bbb', flexShrink: 0 }}>›</span>
-                            </div>
-                            {page.tags?.length > 0 && <TagList tags={page.tags.slice(0, 5)} />}
-                          </button>
-                        ))}
-                      </div>
-                    </section>
-                  ))}
-
-                  {/* Any uncategorised */}
-                  {Object.keys(grouped).filter(c => !CATEGORY_ORDER.includes(c)).map(cat => (
-                    <section key={cat}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                        <h2 style={{ fontFamily: 'Barlow, Helvetica, Arial, sans-serif', fontSize: '0.7rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#888' }}>{cat}</h2>
-                        <div style={{ flex: 1, height: 1, background: '#e8e8e8' }} />
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        {grouped[cat].map(page => (
-                          <button key={page.slug} onClick={() => openPage(page.slug)}
-                            style={{ textAlign: 'left', background: '#fff', border: '1px solid #e4e4e4', borderRadius: 8, padding: '10px 14px', cursor: 'pointer' }}
-                          >
-                            <span style={{ fontSize: '0.92rem', fontWeight: 600, color: '#1a1a1a' }}>{page.title}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </section>
-                  ))}
-                </div>
-              )
+            {/* Empty state */}
+            {searchResults === null && !indexLoading && total === 0 && (
+              <div style={{ textAlign: 'center', marginTop: 60 }}>
+                <p style={{ color: '#aaa', fontSize: '0.9rem' }}>The wiki is empty.</p>
+                <p style={{ color: '#ccc', fontSize: '0.8rem', marginTop: 8 }}>Run the ingest script to populate it.</p>
+              </div>
             )}
           </>
         )}

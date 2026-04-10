@@ -392,6 +392,11 @@ async def wiki_status_spa():
     return FileResponse(os.path.join(FRONTEND_DIST, 'index.html'))
 
 
+@app.get("/wiki-explore")
+async def wiki_explore_spa():
+    return FileResponse(os.path.join(FRONTEND_DIST, 'index.html'))
+
+
 @app.get("/admin/data")
 async def admin_data():
     from db import get_conn
