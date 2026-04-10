@@ -298,9 +298,97 @@ async def admin_page():
     return FileResponse(os.path.join(FRONTEND_DIST, 'index.html'))
 
 
+@app.get("/api/wiki-status")
+async def wiki_status():
+    """Return DB stats for the wiki status page."""
+    from db import get_conn
+    conn = get_conn()
+    if not conn:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    try:
+        with conn.cursor() as cur:
+            # Total pages
+            cur.execute("SELECT COUNT(*) FROM wiki_pages")
+            total_pages = cur.fetchone()[0]
+
+            # Pages per category
+            cur.execute("""
+                SELECT category, COUNT(*) as cnt
+                FROM wiki_pages
+                GROUP BY category
+                ORDER BY cnt DESC
+            """)
+            by_category = [{"category": r[0], "count": r[1]} for r in cur.fetchall()]
+
+            # Total unique sources (flatten JSONB array)
+            cur.execute("""
+                SELECT COUNT(DISTINCT src->>'id')
+                FROM wiki_pages,
+                     jsonb_array_elements(sources) AS src
+                WHERE sources IS NOT NULL AND jsonb_array_length(sources) > 0
+            """)
+            total_sources = cur.fetchone()[0] or 0
+
+            # Last updated timestamp
+            cur.execute("SELECT MAX(updated_at) FROM wiki_pages")
+            last_updated = cur.fetchone()[0]
+
+            # 10 most recently updated pages
+            cur.execute("""
+                SELECT slug, title, category, updated_at
+                FROM wiki_pages
+                ORDER BY updated_at DESC
+                LIMIT 10
+            """)
+            recent = [
+                {
+                    "slug":       r[0],
+                    "title":      r[1],
+                    "category":   r[2],
+                    "updated_at": r[3].isoformat() if r[3] else None,
+                }
+                for r in cur.fetchall()
+            ]
+
+            # Source type breakdown (video / pdf / post)
+            cur.execute("""
+                SELECT
+                    SUM(CASE WHEN src->>'id' LIKE 'video:%' THEN 1 ELSE 0 END) AS videos,
+                    SUM(CASE WHEN src->>'id' LIKE 'pdf:%'   THEN 1 ELSE 0 END) AS pdfs,
+                    SUM(CASE WHEN src->>'id' LIKE 'post:%'  THEN 1 ELSE 0 END) AS posts
+                FROM wiki_pages,
+                     jsonb_array_elements(sources) AS src
+                WHERE sources IS NOT NULL AND jsonb_array_length(sources) > 0
+            """)
+            row = cur.fetchone()
+            source_types = {
+                "videos": int(row[0] or 0),
+                "pdfs":   int(row[1] or 0),
+                "posts":  int(row[2] or 0),
+            }
+
+    except Exception as e:
+        logger.error(f"Wiki status query failed: {e}")
+        raise HTTPException(status_code=500, detail="Query failed")
+
+    return {
+        "total_pages":   total_pages,
+        "by_category":   by_category,
+        "total_sources": total_sources,
+        "source_types":  source_types,
+        "last_updated":  last_updated.isoformat() if last_updated else None,
+        "recent_pages":  recent,
+    }
+
+
 @app.get("/wiki")
 @app.get("/wiki/{path:path}")
 async def wiki_spa(path: str = ""):
+    return FileResponse(os.path.join(FRONTEND_DIST, 'index.html'))
+
+
+@app.get("/wiki-status")
+async def wiki_status_spa():
     return FileResponse(os.path.join(FRONTEND_DIST, 'index.html'))
 
 
