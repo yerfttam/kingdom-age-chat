@@ -105,6 +105,20 @@ def get_db_conn():
     return psycopg2.connect(os.environ["DATABASE_URL"])
 
 
+def ensure_conn(conn):
+    """Return a live connection, reconnecting if the server dropped it."""
+    try:
+        with conn.cursor() as cur:
+            cur.execute("SELECT 1")
+        return conn
+    except Exception:
+        try:
+            conn.close()
+        except Exception:
+            pass
+        return get_db_conn()
+
+
 def ensure_tables(conn):
     """Create wiki tables if they don't exist (mirrors api/db.py init_db)."""
     with conn.cursor() as cur:
@@ -273,6 +287,15 @@ Follow the schema exactly:
 
 {schema}
 
+IMPORTANT — Ben Hur is NOT a religious or spiritual text:
+Kingdom Age is currently doing a teaching series using the novel Ben Hur as a vehicle for spiritual discussion.
+Ben Hur is a historical novel — it is NOT scripture, doctrine, or authoritative spiritual source material.
+- Do NOT create Concepts, Teachings, Biblical Texts, Prophetic, or Entities pages that treat Ben Hur as a
+  source of spiritual truth. If a teaching happened to use Ben Hur as an illustration, the Key Points should
+  be grounded in Kingdom Age theology and scripture — not in the plot of the novel.
+- Content specifically about the Ben Hur teaching series belongs ONLY on the Series page
+  (slug: series-ben-hur-culture-center). Deepen that page; do not bleed Ben Hur into theological concept pages.
+
 IMPORTANT — Existing pages (study this list before creating anything):
 The following slugs are ALL wiki pages that currently exist.
 
@@ -301,6 +324,19 @@ Your job: rewrite the page body to improve:
 - Cross-references — add or fix [[slug]] links where relevant concepts exist
 - Key Points — ensure each bullet is distinct and non-redundant
 - Prophetic pages — ensure the vision narrative is preserved faithfully before the theological interpretation
+
+CRITICAL — Ben Hur is NOT a religious or spiritual text:
+Kingdom Age is currently doing a teaching series using the book Ben Hur as a vehicle. Ben Hur is a historical novel —
+it is NOT scripture, doctrine, or a spiritual source. Apply this rule strictly:
+- Pages about theological concepts (Concepts, Teachings, Biblical Texts, Prophetic, Entities) must NOT cite Ben Hur
+  as a source of spiritual truth or use it to support theological claims.
+- If a concept page references Ben Hur as a basis for a Key Point, remove or reframe it around the actual
+  Kingdom Age teaching or scripture — Ben Hur may have illustrated a point in a sermon, but the point itself
+  comes from scripture or Kingdom Age theology, not the novel.
+- The ONLY page that should deeply engage with Ben Hur content is the Series page (slug: series-ben-hur-culture-center).
+  That page documents the series itself — what was taught, what was explored — and Ben Hur references belong there.
+- It is fine to note "this concept was explored in the Ben Hur series" as context, but Ben Hur should never be
+  the theological foundation for a claim on a non-Series page.
 
 IMPORTANT — Cross-references:
 The following slugs are the ONLY valid wiki pages that currently exist. In the Cross-References section,
@@ -366,6 +402,13 @@ Your job: return an enhanced body that is richer than either alone.
 - Keep everything that is already in the existing page — do NOT remove or water down existing content
 - Do NOT repeat the same point twice — merge overlapping content into sharper single bullets
 - Do NOT add claims not supported by either source
+
+IMPORTANT — Ben Hur is NOT a religious or spiritual text:
+Kingdom Age is doing a teaching series using Ben Hur as a vehicle. Ben Hur is a historical novel — not scripture.
+- Do NOT use Ben Hur as a source of theological truth on Concepts, Teachings, Biblical Texts, Prophetic, or Entities pages.
+- If the new source draws a spiritual point using Ben Hur, root the Key Point in the actual Kingdom Age teaching
+  or scripture instead. Ben Hur may have illustrated it, but the truth comes from elsewhere.
+- The ONLY page that should deeply engage with Ben Hur content is the Series page (series-ben-hur-culture-center).
 
 Valid slugs for cross-references:
 {slug_list}
@@ -592,6 +635,10 @@ def run_ingest(sources, state, state_key, dry_run=False, limit=None):
 
     try:
         for src in tqdm(pending, desc="Building wiki"):
+            # Refresh connection before each video — guards against server-side timeout drops
+            if conn:
+                conn = ensure_conn(conn)
+
             sid = src['source_id']
             pages = call_ingest(
                 client, schema,
@@ -697,6 +744,7 @@ def run_refine(limit=None, dry_run=False):
 
     try:
         for page in tqdm(pages, desc="Refining wiki"):
+            conn = ensure_conn(conn)
             improved_body = call_refine(client, schema, page, known_slugs=known_slugs)
 
             if not improved_body:
