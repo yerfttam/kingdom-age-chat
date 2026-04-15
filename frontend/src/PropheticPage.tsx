@@ -4,15 +4,17 @@ import { VERSION } from './version'
 /* ─── types ──────────────────────────────────────────────────────── */
 
 interface Entry {
-  id:             number
-  video_id:       string
-  video_title:    string
-  video_url:      string
-  video_date:     string | null
-  speaker:        string | null
-  type:           'vision' | 'dream'
-  narrative:      string
-  interpretation: string | null
+  id:                number
+  video_id:          string
+  video_title:       string
+  video_url:         string
+  watch_url:         string
+  video_date:        string | null
+  speaker:           string | null
+  type:              'vision' | 'dream'
+  narrative:         string
+  interpretation:    string | null
+  timestamp_seconds: number | null
 }
 
 /* ─── helpers ────────────────────────────────────────────────────── */
@@ -21,6 +23,13 @@ function formatDate(iso: string | null): string {
   if (!iso) return '—'
   const d = new Date(iso + 'T12:00:00') // avoid timezone shift on date-only strings
   return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+}
+
+function formatTimestamp(seconds: number | null): string {
+  if (seconds === null) return ''
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  return `${m}:${s.toString().padStart(2, '0')}`
 }
 
 function TypeBadge({ type }: { type: string }) {
@@ -75,8 +84,11 @@ function EntryCard({ entry, query }: { entry: Entry; query: string }) {
         {entry.video_date && (
           <span style={{ fontSize: '0.72rem', color: '#999' }}>{formatDate(entry.video_date)}</span>
         )}
+        {entry.timestamp_seconds !== null && (
+          <span style={{ fontSize: '0.72rem', color: '#bbb' }}>@ {formatTimestamp(entry.timestamp_seconds)}</span>
+        )}
         <a
-          href={entry.video_url}
+          href={entry.watch_url}
           target="_blank"
           rel="noopener noreferrer"
           style={{ marginLeft: 'auto', fontSize: '0.72rem', color: '#8b0000', textDecoration: 'none', flexShrink: 0 }}

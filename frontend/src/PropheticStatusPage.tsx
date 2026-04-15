@@ -13,14 +13,16 @@ interface StatusData {
 }
 
 interface RecentEntry {
-  video_id:    string
-  video_title: string
-  video_url:   string
-  video_date:  string | null
-  speaker:     string | null
-  type:        string
-  narrative:   string
-  created_at:  string | null
+  video_id:          string
+  video_title:       string
+  video_url:         string
+  watch_url:         string
+  video_date:        string | null
+  speaker:           string | null
+  type:              string
+  narrative:         string
+  created_at:        string | null
+  timestamp_seconds: number | null
 }
 
 function fmt(n: number) {
@@ -154,7 +156,7 @@ export default function PropheticStatusPage() {
                           <span style={{ fontSize: '0.72rem', color: '#aaa' }}>{e.video_date}</span>
                         )}
                         <a
-                          href={e.video_url}
+                          href={e.watch_url}
                           target="_blank"
                           rel="noopener noreferrer"
                           style={{ fontSize: '0.72rem', color: '#8b0000', textDecoration: 'none', marginLeft: 'auto' }}

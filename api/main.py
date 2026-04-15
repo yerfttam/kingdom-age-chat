@@ -217,21 +217,24 @@ async def prophetic_status():
             # Recent entries
             cur.execute("""
                 SELECT video_id, video_title, video_url, video_date,
-                       speaker, entry_type, LEFT(narrative, 300), created_at
+                       speaker, entry_type, LEFT(narrative, 300), created_at,
+                       timestamp_seconds
                 FROM prophetic_entries
                 ORDER BY created_at DESC
                 LIMIT 10
             """)
             recent = [
                 {
-                    "video_id":    r[0],
-                    "video_title": r[1],
-                    "video_url":   r[2],
-                    "video_date":  r[3].isoformat() if r[3] else None,
-                    "speaker":     r[4],
-                    "type":        r[5],
-                    "narrative":   r[6],
-                    "created_at":  r[7].isoformat() if r[7] else None,
+                    "video_id":          r[0],
+                    "video_title":       r[1],
+                    "video_url":         r[2],
+                    "watch_url":         (r[2] + ("&" if "?" in r[2] else "?") + f"t={r[8]}") if r[8] is not None else r[2],
+                    "video_date":        r[3].isoformat() if r[3] else None,
+                    "speaker":           r[4],
+                    "type":              r[5],
+                    "narrative":         r[6],
+                    "created_at":        r[7].isoformat() if r[7] else None,
+                    "timestamp_seconds": r[8],
                 }
                 for r in cur.fetchall()
             ]
@@ -296,7 +299,8 @@ async def prophetic_entries(q: str = "", type: str = ""):
 
             cur.execute(f"""
                 SELECT id, video_id, video_title, video_url, video_date,
-                       speaker, entry_type, narrative, interpretation, created_at
+                       speaker, entry_type, narrative, interpretation,
+                       timestamp_seconds, created_at
                 FROM prophetic_entries
                 {where}
                 ORDER BY video_date DESC NULLS LAST, created_at DESC
@@ -308,18 +312,25 @@ async def prophetic_entries(q: str = "", type: str = ""):
         logger.error(f"Prophetic entries query failed: {e}")
         raise HTTPException(status_code=500, detail="Query failed")
 
+    def watch_url(base_url: str, ts: int | None) -> str:
+        if ts is not None:
+            return f"{base_url}&t={ts}" if "?" in base_url else f"{base_url}?t={ts}"
+        return base_url
+
     entries = [
         {
-            "id":             r[0],
-            "video_id":       r[1],
-            "video_title":    r[2],
-            "video_url":      r[3],
-            "video_date":     r[4].isoformat() if r[4] else None,
-            "speaker":        r[5],
-            "type":           r[6],
-            "narrative":      r[7],
-            "interpretation": r[8],
-            "created_at":     r[9].isoformat() if r[9] else None,
+            "id":                r[0],
+            "video_id":          r[1],
+            "video_title":       r[2],
+            "video_url":         r[3],
+            "watch_url":         watch_url(r[3], r[9]),
+            "video_date":        r[4].isoformat() if r[4] else None,
+            "speaker":           r[5],
+            "type":              r[6],
+            "narrative":         r[7],
+            "interpretation":    r[8],
+            "timestamp_seconds": r[9],
+            "created_at":        r[10].isoformat() if r[10] else None,
         }
         for r in rows
     ]

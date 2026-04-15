@@ -115,8 +115,14 @@ def init_db():
                     entry_type       TEXT NOT NULL CHECK (entry_type IN ('vision', 'dream')),
                     narrative        TEXT NOT NULL,
                     interpretation   TEXT,
+                    timestamp_seconds INTEGER,
                     created_at       TIMESTAMPTZ DEFAULT NOW()
                 )
+            """)
+            # Add timestamp_seconds column if it doesn't exist (migration)
+            cur.execute("""
+                ALTER TABLE prophetic_entries
+                ADD COLUMN IF NOT EXISTS timestamp_seconds INTEGER
             """)
 
             cur.execute("""

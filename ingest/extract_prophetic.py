@@ -160,8 +160,9 @@ def _insert_entries_sync(video_id, video_title, video_url, video_date, entries):
                 cur.execute("""
                     INSERT INTO prophetic_entries
                         (video_id, video_title, video_url, video_date,
-                         speaker, entry_type, narrative, interpretation)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                         speaker, entry_type, narrative, interpretation,
+                         timestamp_seconds)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """, (
                     video_id,
                     video_title,
@@ -171,6 +172,7 @@ def _insert_entries_sync(video_id, video_title, video_url, video_date, entries):
                     e['type'],
                     e['narrative'],
                     e.get('interpretation'),
+                    e.get('timestamp_seconds'),
                 ))
             cur.execute("""
                 INSERT INTO prophetic_scan_log (video_id, found_count)
@@ -219,6 +221,12 @@ Your ONLY job is to determine whether the transcript below contains a vision or 
 and if so, to record exactly what was described — faithfully, precisely, without adding
 any interpretation of your own.
 
+TRANSCRIPT FORMAT NOTE:
+The transcript includes inline timestamps in the format "X minutes, Y seconds" or
+"X minute, Y seconds". These appear as plain text in the flow of the transcript.
+Use the timestamp that appears immediately BEFORE the vision/dream begins to record
+when it occurs in the video.
+
 DEFINITIONS:
 - A VISION is a supernatural visual or spiritual experience described by the speaker —
   something they "saw" in the spirit, during prayer, or in a waking spiritual experience.
@@ -231,7 +239,9 @@ EXTRACTION RULES:
    words as closely as possible. Do not summarize or editorialize.
 2. Speaker: identify who shared the vision/dream if they are named or clearly identifiable
    from context. Use null if unknown.
-3. Date: do not infer a date — it will be extracted from metadata separately.
+3. Timestamp: find the timestamp text (e.g. "14 minutes, 32 seconds") that appears
+   immediately before the vision/dream begins. Return it as timestamp_seconds (integer).
+   Convert: (minutes * 60) + seconds. If no timestamp is near the start, return null.
 4. Interpretation: ONLY include this field if the speaker explicitly offered their own
    interpretation or said "this means..." / "I believe this represents..." etc.
    If no interpretation was offered, return null. NEVER provide your own interpretation.
@@ -242,6 +252,7 @@ Return ONLY a valid JSON array. Each entry must have:
   {
     "type": "vision" or "dream",
     "speaker": "Name" or null,
+    "timestamp_seconds": 872 or null,
     "narrative": "...",
     "interpretation": "..." or null
   }
@@ -420,8 +431,13 @@ async def run_extract(sources, dry_run=False, limit=None, concurrency=CONCURRENC
             if entries:
                 print("\n--- {} ---".format(src['title']))
                 for e in entries:
-                    print("  Type:    {}".format(e['type']))
-                    print("  Speaker: {}".format(e.get('speaker', 'unknown')))
+                    print("  Type:      {}".format(e['type']))
+                    print("  Speaker:   {}".format(e.get('speaker', 'unknown')))
+                    ts = e.get('timestamp_seconds')
+                    if ts is not None:
+                        m, s = divmod(ts, 60)
+                        print("  Timestamp: {}m {}s ({}s) → {}?t={}".format(
+                            m, s, ts, src['url'], ts))
                     print("  Narrative: {}...".format(e['narrative'][:200]))
                     if e.get('interpretation'):
                         print("  Interpretation: {}".format(e['interpretation'][:200]))
