@@ -3,28 +3,20 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 
-import WikiPage from './WikiPage.tsx'
-import WikiExplorePage from './WikiExplorePage.tsx'
-import WikiStatusPage from './WikiStatusPage.tsx'
 import ReportPage from './ReportPage.tsx'
+import PropheticStatusPage from './PropheticStatusPage.tsx'
 
 const path = window.location.pathname
 
-const isWikiExplore = path.startsWith('/wiki-explore')
-const isWikiStatus  = path.startsWith('/wiki-status')
-const isWiki        = path.startsWith('/wiki') && !isWikiExplore && !isWikiStatus
-const isReport      = path.startsWith('/report')
+const isReport           = path.startsWith('/report')
+const isPropheticStatus  = path.startsWith('/prophetic-status')
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    {isWiki
-      ? <WikiPage />
-      : isWikiExplore
-      ? <WikiExplorePage />
-      : isWikiStatus
-      ? <WikiStatusPage />
-      : isReport
+    {isReport
       ? <ReportPage />
+      : isPropheticStatus
+      ? <PropheticStatusPage />
       : <App />}
   </StrictMode>,
 )

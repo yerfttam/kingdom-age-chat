@@ -101,6 +101,44 @@ def init_db():
                 )
             """)
 
+            # ---------------------------------------------------------------------------
+            # Prophetic entries
+            # ---------------------------------------------------------------------------
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS prophetic_entries (
+                    id               SERIAL PRIMARY KEY,
+                    video_id         TEXT NOT NULL,
+                    video_title      TEXT NOT NULL,
+                    video_url        TEXT NOT NULL,
+                    video_date       DATE,
+                    speaker          TEXT,
+                    entry_type       TEXT NOT NULL CHECK (entry_type IN ('vision', 'dream')),
+                    narrative        TEXT NOT NULL,
+                    interpretation   TEXT,
+                    created_at       TIMESTAMPTZ DEFAULT NOW()
+                )
+            """)
+
+            cur.execute("""
+                CREATE INDEX IF NOT EXISTS prophetic_entries_video_idx
+                    ON prophetic_entries (video_id)
+            """)
+
+            cur.execute("""
+                CREATE INDEX IF NOT EXISTS prophetic_entries_type_idx
+                    ON prophetic_entries (entry_type)
+            """)
+
+            # Tracks which videos have been scanned (even if no prophetic content found)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS prophetic_scan_log (
+                    id           SERIAL PRIMARY KEY,
+                    video_id     TEXT UNIQUE NOT NULL,
+                    scanned_at   TIMESTAMPTZ DEFAULT NOW(),
+                    found_count  INTEGER DEFAULT 0
+                )
+            """)
+
         logger.info("DB ready — all tables OK")
     except Exception as e:
         logger.error(f"DB init failed: {e}")
