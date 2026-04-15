@@ -262,6 +262,79 @@ async def prophetic_status_spa():
     return FileResponse(os.path.join(FRONTEND_DIST, 'index.html'))
 
 
+@app.get("/prophetic")
+async def prophetic_spa():
+    return FileResponse(os.path.join(FRONTEND_DIST, 'index.html'))
+
+
+# ---------------------------------------------------------------------------
+# Prophetic entries browse endpoint
+# ---------------------------------------------------------------------------
+
+@app.get("/api/prophetic-entries")
+async def prophetic_entries(q: str = "", type: str = ""):
+    """Return all prophetic entries, optionally filtered by search or type."""
+    from db import get_conn
+    conn = get_conn()
+    if not conn:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    try:
+        with conn.cursor() as cur:
+            conditions = []
+            params = []
+
+            if type in ("vision", "dream"):
+                conditions.append("entry_type = %s")
+                params.append(type)
+
+            if q.strip():
+                conditions.append("(narrative ILIKE %s OR video_title ILIKE %s OR COALESCE(speaker, '') ILIKE %s)")
+                like = f"%{q.strip()}%"
+                params.extend([like, like, like])
+
+            where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+
+            cur.execute(f"""
+                SELECT id, video_id, video_title, video_url, video_date,
+                       speaker, entry_type, narrative, interpretation, created_at
+                FROM prophetic_entries
+                {where}
+                ORDER BY video_date DESC NULLS LAST, created_at DESC
+            """, params)
+
+            rows = cur.fetchall()
+
+    except Exception as e:
+        logger.error(f"Prophetic entries query failed: {e}")
+        raise HTTPException(status_code=500, detail="Query failed")
+
+    entries = [
+        {
+            "id":             r[0],
+            "video_id":       r[1],
+            "video_title":    r[2],
+            "video_url":      r[3],
+            "video_date":     r[4].isoformat() if r[4] else None,
+            "speaker":        r[5],
+            "type":           r[6],
+            "narrative":      r[7],
+            "interpretation": r[8],
+            "created_at":     r[9].isoformat() if r[9] else None,
+        }
+        for r in rows
+    ]
+
+    visions = [e for e in entries if e["type"] == "vision"]
+    dreams  = [e for e in entries if e["type"] == "dream"]
+
+    return {
+        "entries": entries,
+        "visions": visions,
+        "dreams":  dreams,
+        "total":   len(entries),
+    }
+
+
 @app.get("/admin/data")
 async def admin_data():
     from db import get_conn

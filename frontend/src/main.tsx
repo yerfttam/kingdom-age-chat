@@ -5,11 +5,13 @@ import App from './App.tsx'
 
 import ReportPage from './ReportPage.tsx'
 import PropheticStatusPage from './PropheticStatusPage.tsx'
+import PropheticPage from './PropheticPage.tsx'
 
 const path = window.location.pathname
 
 const isReport           = path.startsWith('/report')
 const isPropheticStatus  = path.startsWith('/prophetic-status')
+const isProphetic        = path.startsWith('/prophetic') && !isPropheticStatus
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
@@ -17,6 +19,8 @@ createRoot(document.getElementById('root')!).render(
       ? <ReportPage />
       : isPropheticStatus
       ? <PropheticStatusPage />
+      : isProphetic
+      ? <PropheticPage />
       : <App />}
   </StrictMode>,
 )
