@@ -346,6 +346,56 @@ async def prophetic_entries(q: str = "", type: str = ""):
     }
 
 
+@app.get("/api/prophetic-entries/{entry_id}")
+async def prophetic_entry_detail(entry_id: int):
+    """Return a single prophetic entry by ID."""
+    from db import get_conn
+    conn = get_conn()
+    if not conn:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    try:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT id, video_id, video_title, video_url, video_date,
+                       speaker, entry_type, narrative, interpretation,
+                       timestamp_seconds, created_at
+                FROM prophetic_entries
+                WHERE id = %s
+            """, (entry_id,))
+            r = cur.fetchone()
+    except Exception as e:
+        logger.error(f"Prophetic entry detail query failed: {e}")
+        raise HTTPException(status_code=500, detail="Query failed")
+
+    if not r:
+        raise HTTPException(status_code=404, detail="Entry not found")
+
+    def watch_url(base_url: str, ts) -> str:
+        if ts is not None:
+            return f"{base_url}&t={ts}" if "?" in base_url else f"{base_url}?t={ts}"
+        return base_url
+
+    return {
+        "id":                r[0],
+        "video_id":          r[1],
+        "video_title":       r[2],
+        "video_url":         r[3],
+        "watch_url":         watch_url(r[3], r[9]),
+        "video_date":        r[4].isoformat() if r[4] else None,
+        "speaker":           r[5],
+        "type":              r[6],
+        "narrative":         r[7],
+        "interpretation":    r[8],
+        "timestamp_seconds": r[9],
+        "created_at":        r[10].isoformat() if r[10] else None,
+    }
+
+
+@app.get("/prophetic/{entry_id}")
+async def prophetic_detail_spa(entry_id: int):
+    return FileResponse(os.path.join(FRONTEND_DIST, 'index.html'))
+
+
 @app.get("/admin/data")
 async def admin_data():
     from db import get_conn

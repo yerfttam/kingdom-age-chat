@@ -3,7 +3,7 @@ import { VERSION } from './version'
 
 /* ─── types ──────────────────────────────────────────────────────── */
 
-interface Entry {
+export interface Entry {
   id:                number
   video_id:          string
   video_title:       string
@@ -19,21 +19,26 @@ interface Entry {
 
 /* ─── helpers ────────────────────────────────────────────────────── */
 
-function formatDate(iso: string | null): string {
+export function formatDate(iso: string | null): string {
   if (!iso) return '—'
-  const d = new Date(iso + 'T12:00:00') // avoid timezone shift on date-only strings
+  const d = new Date(iso + 'T12:00:00')
   return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
-function formatTimestamp(seconds: number | null): string {
-  if (seconds === null) return ''
-  const m = Math.floor(seconds / 60)
-  const s = seconds % 60
-  return `${m}:${s.toString().padStart(2, '0')}`
+export function entryTitle(entry: Pick<Entry, 'speaker' | 'type' | 'video_date'>): string {
+  const type = entry.type === 'vision' ? 'Vision' : 'Dream'
+  if (entry.speaker) return `${entry.speaker}'s ${type}`
+  if (entry.video_date) return `${type} — ${formatDate(entry.video_date)}`
+  return type
+}
+
+export const TYPE_COLORS: Record<string, { bg: string; text: string; border: string }> = {
+  vision: { bg: '#f3eeff', text: '#5b2d8b', border: '#5b2d8b' },
+  dream:  { bg: '#e8f4f8', text: '#1a5276', border: '#1a5276' },
 }
 
 function TypeBadge({ type }: { type: string }) {
-  const isVision = type === 'vision'
+  const c = TYPE_COLORS[type] ?? TYPE_COLORS.vision
   return (
     <span style={{
       display: 'inline-block',
@@ -42,7 +47,7 @@ function TypeBadge({ type }: { type: string }) {
       letterSpacing: '0.07em',
       textTransform: 'uppercase',
       color: '#fff',
-      background: isVision ? '#5b2d8b' : '#1a5276',
+      background: c.border,
       borderRadius: 3,
       padding: '2px 7px',
       flexShrink: 0,
@@ -52,82 +57,54 @@ function TypeBadge({ type }: { type: string }) {
   )
 }
 
-function EntryCard({ entry, query }: { entry: Entry; query: string }) {
-  const [expanded, setExpanded] = useState(false)
-  const PREVIEW = 400
+function EntryRow({ entry, query }: { entry: Entry; query: string }) {
+  const c = TYPE_COLORS[entry.type] ?? TYPE_COLORS.vision
+  const title = entryTitle(entry)
+  const preview = entry.narrative.length > 120
+    ? entry.narrative.slice(0, 120) + '…'
+    : entry.narrative
 
-  const highlight = (text: string) => {
+  const highlightText = (text: string) => {
     if (!query.trim()) return text
     const escaped = query.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
     return text.replace(new RegExp(`(${escaped})`, 'gi'), '<mark style="background:#fff3cd;padding:0 1px">$1</mark>')
   }
 
-  const narrative    = entry.narrative
-  const isLong       = narrative.length > PREVIEW
-  const displayText  = expanded || !isLong ? narrative : narrative.slice(0, PREVIEW) + '…'
-
   return (
-    <div style={{
-      background: '#fff',
-      border: '1px solid #e4e4e4',
-      borderLeft: `4px solid ${entry.type === 'vision' ? '#5b2d8b' : '#1a5276'}`,
-      borderRadius: '0 8px 8px 0',
-      padding: '14px 16px',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.04)',
-    }}>
-      {/* Row 1: type badge + speaker + date + watch link */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+    <div
+      onClick={() => window.location.href = `/prophetic/${entry.id}`}
+      style={{
+        background: '#fff',
+        border: '1px solid #e8e8e8',
+        borderLeft: `4px solid ${c.border}`,
+        borderRadius: '0 8px 8px 0',
+        padding: '12px 14px',
+        cursor: 'pointer',
+        transition: 'box-shadow 0.15s ease',
+      }}
+      onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.1)')}
+      onMouseLeave={e => (e.currentTarget.style.boxShadow = 'none')}
+    >
+      {/* Title row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5, flexWrap: 'wrap' }}>
         <TypeBadge type={entry.type} />
-        {entry.speaker && (
-          <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#444' }}>{entry.speaker}</span>
-        )}
-        {entry.video_date && (
-          <span style={{ fontSize: '0.72rem', color: '#999' }}>{formatDate(entry.video_date)}</span>
-        )}
-        {entry.timestamp_seconds !== null && (
-          <span style={{ fontSize: '0.72rem', color: '#bbb' }}>@ {formatTimestamp(entry.timestamp_seconds)}</span>
-        )}
-        <a
-          href={entry.watch_url}
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{ marginLeft: 'auto', fontSize: '0.72rem', color: '#8b0000', textDecoration: 'none', flexShrink: 0 }}
-          onMouseEnter={e => (e.currentTarget.style.textDecoration = 'underline')}
-          onMouseLeave={e => (e.currentTarget.style.textDecoration = 'none')}
-        >
-          Watch ↗
-        </a>
+        <span
+          style={{ fontSize: '0.88rem', fontWeight: 600, color: '#222' }}
+          dangerouslySetInnerHTML={{ __html: highlightText(title) }}
+        />
+        <span style={{ marginLeft: 'auto', fontSize: '0.7rem', color: '#bbb', flexShrink: 0 }}>
+          {formatDate(entry.video_date)}
+        </span>
       </div>
 
-      {/* Narrative */}
+      {/* Narrative preview */}
       <p
-        style={{ fontSize: '0.85rem', color: '#333', lineHeight: 1.65, margin: 0 }}
-        dangerouslySetInnerHTML={{ __html: highlight(displayText) }}
+        style={{ fontSize: '0.8rem', color: '#666', lineHeight: 1.55, margin: 0 }}
+        dangerouslySetInnerHTML={{ __html: highlightText(preview) }}
       />
-      {isLong && (
-        <button
-          onClick={() => setExpanded(e => !e)}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.72rem', color: '#8b0000', padding: '6px 0 0', display: 'block' }}
-        >
-          {expanded ? 'Show less ↑' : 'Read more ↓'}
-        </button>
-      )}
 
-      {/* Interpretation */}
-      {entry.interpretation && (
-        <div style={{ marginTop: 10, padding: '8px 12px', background: '#fafafa', borderRadius: 6, border: '1px solid #eee' }}>
-          <span style={{ fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: '#aaa', display: 'block', marginBottom: 4 }}>
-            Interpretation (as shared)
-          </span>
-          <p
-            style={{ fontSize: '0.82rem', color: '#555', lineHeight: 1.6, margin: 0 }}
-            dangerouslySetInnerHTML={{ __html: highlight(entry.interpretation) }}
-          />
-        </div>
-      )}
-
-      {/* Source */}
-      <div style={{ marginTop: 8, fontSize: '0.68rem', color: '#bbb' }}>
+      {/* Meeting name */}
+      <div style={{ marginTop: 5, fontSize: '0.68rem', color: '#bbb' }}>
         {entry.video_title}
       </div>
     </div>
@@ -145,7 +122,7 @@ function Section({
 }) {
   return (
     <section>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
         <h2 style={{
           fontFamily: 'Barlow, Helvetica, Arial, sans-serif',
           fontSize: '0.7rem',
@@ -165,8 +142,8 @@ function Section({
       {entries.length === 0 ? (
         <p style={{ fontSize: '0.85rem', color: '#bbb', fontStyle: 'italic', paddingLeft: 4 }}>{emptyMsg}</p>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {entries.map(e => <EntryCard key={e.id} entry={e} query={query} />)}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {entries.map(e => <EntryRow key={e.id} entry={e} query={query} />)}
         </div>
       )}
     </section>
@@ -185,7 +162,6 @@ export default function PropheticPage() {
   const [liveQuery, setLiveQuery] = useState('')
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  /* Unlock scrolling (same pattern as WikiExplorePage) */
   useEffect(() => {
     document.title = 'Prophetic Archive — Kingdom Age'
     const root = document.getElementById('root')
@@ -217,10 +193,8 @@ export default function PropheticPage() {
       .finally(() => setLoading(false))
   }, [])
 
-  /* Initial load */
   useEffect(() => { fetchEntries('') }, [fetchEntries])
 
-  /* Debounced search */
   const handleSearch = (val: string) => {
     setQuery(val)
     if (debounceRef.current) clearTimeout(debounceRef.current)
@@ -307,11 +281,11 @@ export default function PropheticPage() {
         ) : total === 0 ? (
           <div style={{ textAlign: 'center', marginTop: 60 }}>
             <p style={{ color: '#aaa', fontSize: '0.9rem' }}>
-              {liveQuery.trim() ? `No entries matched "${liveQuery}".` : 'No prophetic entries yet. Run extract_prophetic.py to start scanning.'}
+              {liveQuery.trim() ? `No entries matched "${liveQuery}".` : 'No prophetic entries yet.'}
             </p>
           </div>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 36 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 32 }}>
             <Section
               title="Visions"
               color="#5b2d8b"
