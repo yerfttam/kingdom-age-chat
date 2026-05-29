@@ -78,7 +78,9 @@ v2.7.1 — admin page rebuilt in React, shares CSS with main app
 - `ingest/embed_pdf.py` — embed a PDF book into Pinecone (see PDF Ingest section below)
 - `ingest/daily_sync.py` — runs all three steps for new-only videos; safe to run repeatedly
 - All scripts are resumable — they check local state files before doing work
-- A scheduled task (`kingdom-age-daily-sync`) runs `daily_sync.py` at 3 AM daily
+- A GitHub Actions workflow (`.github/workflows/daily-sync.yml`) runs `daily_sync.py` at 3 AM Pacific daily; can also be triggered manually via `workflow_dispatch`
+- Transcripts are fetched via `youtube-transcript-api` (free, no API key) — note GitHub Actions runners use cloud IPs which YouTube may occasionally block
+- State files `data/videos.json` and `data/embedded.json` are committed to the repo; the workflow commits them back after each run
 
 ## Wiki
 The wiki is a Karpathy-style LLM knowledge base: instead of raw chunk retrieval, the LLM synthesizes content into durable, human-readable pages stored in Postgres.

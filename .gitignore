@@ -17,6 +17,8 @@ build/
 data/
 *.json
 !config.example.json
+!data/videos.json
+!data/embedded.json
 
 # Pinecone / embeddings cache
 cache/
