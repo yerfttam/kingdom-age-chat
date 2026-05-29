@@ -162,11 +162,9 @@ Steps 1-3 done (as of v2.1.0). Steps 4-5 still to do:
 - Cost profile: Opus 4.6 runs ~$15/MTok input + $75/MTok output; input dominates (13:1 ratio vs output)
 
 ## Database
-- **Status**: Render Postgres (`ka_chat_db`) was deleted (cost). The app runs without a DB — chat and RAG work fine.
-- The `/prophetic` archive pages require a database (`prophetic_entries` table) and are currently broken without one.
-- If a DB is restored, use a free tier like [Neon](https://neon.tech). Set `DATABASE_URL` in Render env vars.
-- `psycopg2-binary` must be installed locally: `.venv/bin/pip install psycopg2-binary --only-binary=:all:`
-- The query logging report page (`/report`) was removed — it depended on the `queries` table.
+- **No database** — Render Postgres was deleted (cost). The app runs without one; chat and RAG work fully.
+- `api/db.py` has been deleted. `psycopg2-binary` is still in `requirements.txt` but unused.
+- The prophetic archive (`/prophetic`) and query log report (`/report`) were removed along with the DB.
 
 ## Python environment
 - Use `python3` (not `python`) — venv at `.venv/`
