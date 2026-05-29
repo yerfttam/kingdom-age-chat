@@ -14,7 +14,7 @@ There is also a **Wiki** (Karpathy LLM Wiki pattern) — a persistent, LLM-synth
 - **Backend**: FastAPI (`api/main.py`, `api/rag.py`) — serves the frontend static files and exposes `/chat/stream` (SSE streaming) and `/chat` (non-streaming)
 - **Frontend**: React + Vite (`frontend/src/`) — pre-built dist is committed to `frontend/dist/` and served by the backend
 - **App**: React Native + Expo (`app/`) — iOS app, runs via Expo Go in simulator for dev, will be submitted to App Store separately
-- **Ingest**: Python scripts in `ingest/` — fetch videos, transcripts (via Apify), chunk/embed, upsert to Pinecone
+- **Ingest**: Python scripts in `ingest/` — fetch videos, transcripts (via `youtube-transcript-api`), chunk/embed, upsert to Pinecone
 - **Wiki ingest**: `ingest/build_wiki.py` — builds/refines wiki pages from transcripts + PDF + WordPress
 - **Data**: `data/videos.json`, `data/transcripts.json`, `data/embedded.json` (local state, not committed)
 - **Wiki state**: `data/wiki_ingest.json` — tracks which sources have been ingested (resumable)
@@ -73,7 +73,7 @@ v2.7.1 — admin page rebuilt in React, shares CSS with main app
 
 ## Ingest pipeline
 - `ingest/fetch_videos.py` — scrape video list from YouTube channel
-- `ingest/fetch_transcripts.py` — fetch transcripts via Apify API
+- `ingest/fetch_transcripts.py` — fetch transcripts via `youtube-transcript-api` (free, no API key)
 - `ingest/chunk_embed.py` — chunk (500 words, 50 overlap), embed (OpenAI `text-embedding-3-small`), upsert to Pinecone
 - `ingest/embed_pdf.py` — embed a PDF book into Pinecone (see PDF Ingest section below)
 - `ingest/daily_sync.py` — runs all three steps for new-only videos; safe to run repeatedly
@@ -162,11 +162,11 @@ Steps 1-3 done (as of v2.1.0). Steps 4-5 still to do:
 - Cost profile: Opus 4.6 runs ~$15/MTok input + $75/MTok output; input dominates (13:1 ratio vs output)
 
 ## Database
-- PostgreSQL on Render (`ka_chat_db`)
-- **Local dev**: use the **External** Database URL in `.env` — `dpg-...oregon-postgres.render.com`
-- **Render production**: use the **Internal** Database URL in Render environment settings — `dpg-...-a` (no hostname suffix, faster and free within Render's network)
-- Same env var name in both: `DATABASE_URL`
+- **Status**: Render Postgres (`ka_chat_db`) was deleted (cost). The app runs without a DB — chat and RAG work fine.
+- The `/prophetic` archive pages require a database (`prophetic_entries` table) and are currently broken without one.
+- If a DB is restored, use a free tier like [Neon](https://neon.tech). Set `DATABASE_URL` in Render env vars.
 - `psycopg2-binary` must be installed locally: `.venv/bin/pip install psycopg2-binary --only-binary=:all:`
+- The query logging report page (`/report`) was removed — it depended on the `queries` table.
 
 ## Python environment
 - Use `python3` (not `python`) — venv at `.venv/`

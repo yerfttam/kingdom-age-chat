@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 sys.path.insert(0, os.path.dirname(__file__))
 from rag import chat, stream_chat
-from db import init_db, log_query
+from db import init_db
 
 
 def _startup_checks():
@@ -123,8 +123,6 @@ async def chat_stream_endpoint(req: ChatRequest):
                     pass
             yield chunk
         response_ms = int((time.time() - start) * 1000)
-        log_query(req.question, req.model, response_ms, num_sources, session_id)
-
     return StreamingResponse(
         logged_stream(),
         media_type="text/event-stream",
@@ -135,44 +133,6 @@ async def chat_stream_endpoint(req: ChatRequest):
 @app.get("/health")
 async def health():
     return {"status": "ok"}
-
-
-@app.get("/report")
-async def report_page():
-    return FileResponse(os.path.join(FRONTEND_DIST, 'index.html'))
-
-
-@app.get("/report/data")
-async def report_data():
-    from db import get_conn
-    conn = get_conn()
-    rows = []
-    total = 0
-    if conn:
-        try:
-            with conn.cursor() as cur:
-                cur.execute("SELECT COUNT(*) FROM queries")
-                total = cur.fetchone()[0]
-                cur.execute("""
-                    SELECT created_at, question, model, response_ms, session_id
-                    FROM queries
-                    ORDER BY created_at DESC
-                    LIMIT 200
-                """)
-                raw = cur.fetchall()
-                rows = [
-                    {
-                        "created_at": r[0].strftime("%Y-%m-%d %H:%M:%S") if r[0] else "",
-                        "question": r[1] or "",
-                        "model": r[2] or "",
-                        "response_ms": r[3],
-                        "session_id": r[4] or "",
-                    }
-                    for r in raw
-                ]
-        except Exception as e:
-            logger.error(f"Report query failed: {e}")
-    return {"rows": rows, "total": total}
 
 
 @app.get("/admin")

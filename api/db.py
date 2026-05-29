@@ -34,18 +34,6 @@ def init_db():
     try:
         with conn.cursor() as cur:
             cur.execute("""
-                CREATE TABLE IF NOT EXISTS queries (
-                    id            SERIAL PRIMARY KEY,
-                    created_at    TIMESTAMPTZ DEFAULT NOW(),
-                    question      TEXT NOT NULL,
-                    model         TEXT,
-                    response_ms   INTEGER,
-                    num_sources   INTEGER,
-                    session_id    TEXT
-                )
-            """)
-
-            cur.execute("""
                 CREATE TABLE IF NOT EXISTS wiki_pages (
                     id             SERIAL PRIMARY KEY,
                     slug           TEXT UNIQUE NOT NULL,
@@ -150,16 +138,3 @@ def init_db():
         logger.error(f"DB init failed: {e}")
 
 
-def log_query(question: str, model: str, response_ms: int, num_sources: int, session_id: str = None):
-    """Insert a query record. Fire-and-forget — never raises."""
-    try:
-        conn = get_conn()
-        if not conn:
-            return
-        with conn.cursor() as cur:
-            cur.execute(
-                "INSERT INTO queries (question, model, response_ms, num_sources, session_id) VALUES (%s, %s, %s, %s, %s)",
-                (question, model, response_ms, num_sources, session_id)
-            )
-    except Exception as e:
-        logger.error(f"Failed to log query: {e}")
