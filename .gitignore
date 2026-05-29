@@ -14,7 +14,7 @@ build/
 .env.local
 
 # Data / transcripts (too large for git)
-data/
+data/*
 *.json
 !config.example.json
 !data/videos.json
